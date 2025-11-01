@@ -205,7 +205,7 @@ impl<'a> Parser<'a> {
     }
 
     fn error(&self, kind: ErrorKind) -> ParseError {
-        ParseError::new(kind, self.input.text(), self.input.span())
+        ParseError::new(kind, self.input.text(), self.input.span_char())
     }
 
     fn emit_match(&self) -> Ast {
@@ -252,7 +252,7 @@ impl<'a> Parser<'a> {
         let tag = self.input.char();
         self.input.advance();
 
-        let s = if !self.input.at_eof() && self.input.char() == '/' {
+        let s = if self.input.try_char() == Some('/') {
             Some(self.parse_delimited_str()?)
         } else {
             None
@@ -324,22 +324,26 @@ impl<'a> Parser<'a> {
 
         loop {
             self.input.consume_whitespace();
-            if self.input.at_eof() {
-                return Err(self.error(ErrorKind::MissingDelimiter('}')));
-            } else if self.input.char() == '}' {
-                self.input.advance(); // consume the '}'
+            match self.input.try_char() {
+                Some('}') => {
+                    self.input.advance(); // consume the '}'
 
-                return if seq.nodes.is_empty() {
-                    Err(self.error(ErrorKind::EmptyGroup))
-                } else {
-                    seq.span = seq.span.with_end(self.input.pos());
-                    Ok(seq)
-                };
+                    return if seq.nodes.is_empty() {
+                        Err(self.error(ErrorKind::EmptyGroup))
+                    } else {
+                        seq.span = seq.span.with_end(self.input.pos());
+                        Ok(seq)
+                    };
+                }
+                Some(_) => (),
+                None => return Err(self.error(ErrorKind::MissingDelimiter('}'))),
             }
+
             let node = self.parse1(true)?;
             if !node.is_comment() {
                 branch.push(node);
             }
+
             self.input.consume_whitespace();
             if self.input.char() == ';' {
                 self.input.advance(); // consume the ';'

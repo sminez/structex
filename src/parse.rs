@@ -112,6 +112,7 @@ impl<'a> ParseInput<'a> {
         self.input
     }
 
+    #[cfg(test)]
     pub fn span_text(&self, span: &Span) -> &str {
         &self.input[span.as_range()]
     }
