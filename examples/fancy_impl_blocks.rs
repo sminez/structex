@@ -1,25 +1,25 @@
-//! An example of how to use a Structex alongside the handlebars crate to support simple string
+//! An example of how to use a Structex alongside the tinytemplate crate to support simple string
 //! templating for a 'p' print action.
-use handlebars::Handlebars;
 use regex::Regex;
 use std::collections::HashMap;
 use structex::{Action, Structex};
+use tinytemplate::TinyTemplate;
 
 const SE: &str = r#"
 x/^impl(?:<.*?>)?.*? (\w+)(?:.|\n)*?^\}/
 v/^impl(?:<.*?>)?.*? for/ {
 
-  p/\nimpl {{$1}}/;
+  p/\nimpl {$1}/;
 
   x/fn(?:.|\n)*?\{/ {
     g/->/ x/fn (\w+)(?:.|\n)*?-> (.*?)\w*\{/ {
-      g/&('. )?mut self/ p/  mut {{$1}} -> {{$2}}/;
-      v/&('. )?mut self/ p/      {{$1}} -> {{$2}}/;
+      g/&('. )?mut self/ p/  mut {$1} -> {$2}/;
+      v/&('. )?mut self/ p/      {$1} -> {$2}/;
     };
 
     v/->/ x/fn (\w+)(?:.|\n)*\{/ {
-      g/&('. )?mut self/ p/  mut {{$1}} -> ()/;
-      v/&('. )?mut self/ p/      {{$1}} -> ()/;
+      g/&('. )?mut self/ p/  mut {$1} -> ()/;
+      v/&('. )?mut self/ p/      {$1} -> ()/;
     };
 
   };
@@ -30,13 +30,13 @@ fn main() {
     // Compile the structex
     let se: Structex<Regex> = Structex::compile(SE).unwrap();
 
-    // Create a new handlebars registry and register each print template that was located by the
+    // Create a new template registry and register each print template that was located by the
     // Structex during compilation.
-    let mut reg = Handlebars::new();
-    reg.register_escape_fn(|s| s.to_string());
+    let mut tt = TinyTemplate::new();
+    tt.set_default_formatter(&tinytemplate::format_unescaped);
 
     for template in se.action_content() {
-        reg.register_template_string(template, template).unwrap();
+        tt.add_template(template, template).unwrap();
     }
 
     // Match against the ast.rs file from this crate
@@ -67,7 +67,7 @@ fn main() {
 
                 println!(
                     "{}",
-                    reg.render(template, &ctx).unwrap().replace("\\n", "\n")
+                    tt.render(template, &ctx).unwrap().replace("\\n", "\n")
                 );
             }
 
