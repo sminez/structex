@@ -1,7 +1,7 @@
-//! Compiling of [Ast] nodes into a complete [Prog];
+//! Compiling of [Ast] nodes into an executable [Inst].
 use crate::{
     Error,
-    ast::{self, Ast, Parser, Sequence},
+    ast::{self, Ast, Parser, ReNode, Sequence},
     se::{Action, Extract, Guard, Narrow},
 };
 
@@ -37,28 +37,28 @@ pub(crate) struct Compiler {
 }
 
 impl Compiler {
-    pub fn compile(&mut self, s: &str) -> Result<Inst, Error> {
+    pub(crate) fn compile(&mut self, s: &str) -> Result<Inst, Error> {
         let ast = Parser::new(s)
             .with_allowed_argless_tags(self.allowed_argless_tags.as_deref())
             .with_allowed_single_arg_tags(self.allowed_single_arg_tags.as_deref())
             .parse()?;
 
-        Ok(self.instructions_for(ast))
+        Ok(self.instruction_for(ast))
     }
 
-    fn instructions_for(&mut self, node: Ast) -> Inst {
+    fn instruction_for(&mut self, node: Ast) -> Inst {
         match node {
-            Ast::Narrow(n) => self.add_for_narrow(n),
+            Ast::Narrow(n) => self.narrow(n),
 
-            Ast::Extract(ext) => self.add_for_extract(ext, false),
-            Ast::ExtractBetween(ext) => self.add_for_extract(ext, true),
+            Ast::Extract(ext) => self.extract(ext, false),
+            Ast::ExtractBetween(ext) => self.extract(ext, true),
 
-            Ast::Parallel(Sequence { nodes, .. }) => self.add_for_parallel(nodes),
+            Ast::Parallel(Sequence { nodes, .. }) => self.parallel(nodes),
 
-            Ast::Guard(g) => self.add_for_guard(g, false),
-            Ast::InvGuard(g) => self.add_for_guard(g, true),
+            Ast::Guard(g) => self.guard(g, false),
+            Ast::InvGuard(g) => self.guard(g, true),
 
-            Ast::Action(a) => self.add_for_action(a),
+            Ast::Action(a) => self.action(a),
 
             Ast::Comment(_) => panic!("Parser returned comment"),
         }
@@ -90,16 +90,16 @@ impl Compiler {
         }
     }
 
-    fn add_for_narrow(&mut self, n: ast::ReNode) -> Inst {
+    fn narrow(&mut self, n: ReNode) -> Inst {
         let re = self.push_re(n.re);
-        let node = Box::new(self.instructions_for(*n.node));
+        let node = Box::new(self.instruction_for(*n.node));
 
         Inst::Narrow(Narrow { re, node })
     }
 
-    fn add_for_guard(&mut self, g: ast::ReNode, inverted: bool) -> Inst {
+    fn guard(&mut self, g: ReNode, inverted: bool) -> Inst {
         let re = self.push_re(g.re);
-        let branch = Box::new(self.instructions_for(*g.node));
+        let branch = Box::new(self.instruction_for(*g.node));
 
         let (if_matching, if_not_matching) = if inverted {
             (None, Some(branch))
@@ -114,9 +114,9 @@ impl Compiler {
         })
     }
 
-    fn add_for_extract(&mut self, ext: ast::ReNode, between: bool) -> Inst {
+    fn extract(&mut self, ext: ReNode, between: bool) -> Inst {
         let re = self.push_re(ext.re);
-        let branch = Box::new(self.instructions_for(*ext.node));
+        let branch = Box::new(self.instruction_for(*ext.node));
 
         let (on_extract, on_filter) = if between {
             (None, Some(branch))
@@ -131,11 +131,11 @@ impl Compiler {
         })
     }
 
-    fn add_for_parallel(&mut self, nodes: Vec<Ast>) -> Inst {
+    fn parallel(&mut self, nodes: Vec<Ast>) -> Inst {
         let mut branches = Vec::new();
 
         for node in nodes {
-            let branch = self.instructions_for(node);
+            let branch = self.instruction_for(node);
 
             match branch {
                 Inst::Guard(g) => {
@@ -161,7 +161,7 @@ impl Compiler {
         }
     }
 
-    fn add_for_action(&mut self, action: ast::Action) -> Inst {
+    fn action(&mut self, action: ast::Action) -> Inst {
         match action.tag {
             Some(tag) => {
                 self.push_tag(tag);
