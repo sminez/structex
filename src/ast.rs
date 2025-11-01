@@ -5,18 +5,40 @@ use std::fmt;
 /// An error that can arrise during expression parsing.
 pub type ParseError = crate::parse::Error<ErrorKind>;
 
-/// Error variants for [ParseError].
+/// A list specifying the different categories of errors that can be encountered while parsing a
+/// structural regular expression.
+///
+/// It is used with the [ParseError] type.
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorKind {
+    /// A parallel group was provided without any branches.
     EmptyGroup,
+    /// A branch in a parallel group contained no expressions.
     EmptyGroupBranch,
-    EmptyProgram,
-    EmptySequence,
+    /// The provided expression was empty.
+    EmptyExpression,
+    /// The provided top level expression was a single action.
+    /// Such an expression would only ever run the action once for all inputs.
+    TopLevelAction,
+    /// An expected delimiter was not found.
+    ///
+    /// Typically this is encountered when an parallel group or delimited string is missing its
+    /// closing delimiter.
     MissingDelimiter(char),
+    /// Multiple distinct expressions were present in the provided input.
+    ///
+    /// To run multiple expressions over a haystack you should provide a top level parallel group.
     MultipleBranches,
+    /// An unexpected character was encountered in the input expression.
     UnexpectedChar(char),
+    /// End of file was encountered before a full expression could be parsed.
     UnexpectedEof,
+    /// An action tag was found that did not match the allowed single argument tags specified as
+    /// part of a [StructexBuilder][crate::StructexBuilder].
     UnknownArgumentTag(char),
+    /// An action tag was found that did not match the allowed zero argument tags specified as
+    /// part of a [StructexBuilder][crate::StructexBuilder].
     UnknownTag(char),
 }
 
@@ -25,10 +47,10 @@ impl fmt::Display for ErrorKind {
         match self {
             Self::EmptyGroup => write!(f, "empty group"),
             Self::EmptyGroupBranch => write!(f, "empty group branch"),
-            Self::EmptyProgram => write!(f, "empty program"),
-            Self::EmptySequence => write!(f, "empty sequence"),
+            Self::EmptyExpression => write!(f, "empty program"),
             Self::MissingDelimiter(ch) => write!(f, "missing delimiter '{ch}'"),
             Self::MultipleBranches => write!(f, "multiple branches when one was expected"),
+            Self::TopLevelAction => write!(f, "top level expression can not be an action"),
             Self::UnexpectedChar(ch) => write!(f, "unexpected character in input '{ch}'"),
             Self::UnexpectedEof => write!(f, "unexpected EOF"),
             Self::UnknownArgumentTag(ch) => {
@@ -153,10 +175,13 @@ impl<'i, 'c> Parser<'i, 'c> {
             self.input.consume_whitespace();
         }
 
-        // TODO: require top level parallel, extract, guard or narrow
         match seq.nodes.len() {
-            0 => Err(self.error(ErrorKind::EmptyProgram)),
-            1 => Ok(seq.nodes.remove(0)),
+            0 => Err(self.error(ErrorKind::EmptyExpression)),
+            1 => match seq.nodes.remove(0) {
+                Ast::Action(_) => Err(self.error(ErrorKind::TopLevelAction)),
+                Ast::Comment(_) => unreachable!(),
+                node => Ok(node),
+            },
             _ => Err(self.error(ErrorKind::MultipleBranches)),
         }
     }
