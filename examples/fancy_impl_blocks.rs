@@ -39,8 +39,10 @@ fn main() {
     let mut tt = TinyTemplate::new();
     tt.set_default_formatter(&tinytemplate::format_unescaped);
 
-    for template in se.action_args() {
-        tt.add_template(template, template).unwrap();
+    for action in se.actions() {
+        if let Some(template) = action.arg.as_ref() {
+            tt.add_template(template, template).unwrap();
+        }
     }
 
     // Match against the ast.rs file from this crate
@@ -52,7 +54,7 @@ fn main() {
             None
             | Some(Action {
                 tag: 'p',
-                content: None,
+                arg: None,
             }) => {
                 println!("{}", m.match_text(haystack));
             }
@@ -61,7 +63,7 @@ fn main() {
             // render the template
             Some(Action {
                 tag: 'p',
-                content: Some(ref template),
+                arg: Some(ref template),
             }) => {
                 let ctx: HashMap<String, String> = m
                     .iter_caps(haystack)

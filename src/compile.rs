@@ -2,7 +2,7 @@
 use crate::{
     Error,
     ast::{self, Ast, Parser, Sequence},
-    se::{Extract, Guard, Narrow},
+    se::{Action, Extract, Guard, Narrow},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,23 +21,17 @@ pub(crate) enum Inst {
     Narrow(Narrow),
 
     /// An action to emit alongside the corresponding match
-    Action(Action),
+    Action(usize),
 
     /// Default action: emit only the match itself
     EmitMatch,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Action {
-    pub tag: char,
-    pub content: Option<usize>,
 }
 
 #[derive(Debug, Default)]
 pub(crate) struct Compiler {
     pub(crate) re: Vec<String>,
     pub(crate) tags: String,
-    pub(crate) action_args: Vec<String>,
+    pub(crate) actions: Vec<Action>,
     pub(crate) allowed_argless_tags: Option<String>,
     pub(crate) allowed_single_arg_tags: Option<String>,
 }
@@ -86,12 +80,12 @@ impl Compiler {
         }
     }
 
-    fn push_template(&mut self, t: String) -> usize {
-        match self.action_args.iter().position(|s| s == &t) {
+    fn push_action(&mut self, action: Action) -> usize {
+        match self.actions.iter().position(|a| a == &action) {
             Some(idx) => idx,
             None => {
-                self.action_args.push(t);
-                self.action_args.len() - 1
+                self.actions.push(action);
+                self.actions.len() - 1
             }
         }
     }
@@ -171,9 +165,9 @@ impl Compiler {
         match action.tag {
             Some(tag) => {
                 self.push_tag(tag);
-                let content = action.s.map(|s| self.push_template(s));
+                let action = self.push_action(Action { tag, arg: action.s });
 
-                Inst::Action(Action { tag, content })
+                Inst::Action(action)
             }
 
             None => Inst::EmitMatch,

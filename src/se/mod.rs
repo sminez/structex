@@ -2,7 +2,7 @@
 //! engine.
 use crate::{
     Error,
-    compile::{self, Compiler, Inst},
+    compile::{Compiler, Inst},
     re::{Captures, Re},
 };
 use std::{fmt, ops::Deref, sync::Arc};
@@ -55,8 +55,8 @@ where
         &self.raw
     }
 
-    pub fn action_args(&self) -> &[String] {
-        &self.inner.action_args
+    pub fn actions(&self) -> &[Action] {
+        &self.inner.actions
     }
 
     pub fn tags(&self) -> &str {
@@ -128,9 +128,13 @@ impl StructexBuilder {
         let Compiler {
             re,
             tags,
-            action_args,
+            mut actions,
             ..
         } = c;
+
+        for a in actions.iter_mut() {
+            a.arg = a.arg.take().map(|s| (self.action_content_fn)(s));
+        }
 
         Ok(Structex {
             raw: Arc::from(se),
@@ -141,10 +145,7 @@ impl StructexBuilder {
                     .map(|re| R::compile(&re).map_err(|e| Error::InvalidRegex(Box::new(e))))
                     .collect::<Result<Vec<_>, _>>()?,
                 tags,
-                action_args: action_args
-                    .into_iter()
-                    .map(self.action_content_fn)
-                    .collect(),
+                actions,
             }),
         })
     }
@@ -167,7 +168,7 @@ where
     pub(super) inst: Inst,
     pub(super) re: Vec<R>,
     pub(super) tags: String,
-    pub(super) action_args: Vec<String>,
+    pub(super) actions: Vec<Action>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -223,19 +224,7 @@ impl Deref for Match {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Action {
     pub tag: char,
-    pub content: Option<String>,
-}
-
-impl Action {
-    fn new<R>(a: &compile::Action, inner: &Inner<R>) -> Self
-    where
-        R: Re,
-    {
-        Self {
-            tag: a.tag,
-            content: a.content.map(|idx| inner.action_args[idx].clone()),
-        }
-    }
+    pub arg: Option<String>,
 }
 
 pub struct MatchIter<'h, R>
@@ -295,9 +284,9 @@ where
                 captures: dot.into_captures(),
                 action: None,
             }))),
-            Inst::Action(a) => Some(Self::Emit(Some(Match {
+            Inst::Action(i) => Some(Self::Emit(Some(Match {
                 captures: dot.into_captures(),
-                action: Some(Action::new(a, &inner)),
+                action: Some(inner.actions[*i].clone()),
             }))),
 
             // Narrow and Guard act as filters on the instructions they wrap
