@@ -3,8 +3,12 @@ name = "structex"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["regex"]
+regex = ["dep:regex"]
+
 [dependencies]
-regex = "1.12.2"
+regex = { version = "1", optional = true }
 
 [dev-dependencies]
 handlebars = "6.3.2"

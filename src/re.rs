@@ -75,6 +75,7 @@ impl Captures {
     }
 }
 
+#[cfg(feature = "regex")]
 impl Re for regex::Regex {
     type Error = regex::Error;
 
