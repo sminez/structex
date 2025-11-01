@@ -76,6 +76,14 @@ where
         &self.raw
     }
 
+    pub fn action_content(&self) -> &[String] {
+        &self.inner.action_content
+    }
+
+    pub fn tags(&self) -> &str {
+        &self.inner.tags
+    }
+
     pub fn iter_matches<'h>(&'h self, haystack: &'h str) -> MatchIter<'h, R> {
         MatchIter::new(&self.inner.inst, self.inner.clone(), haystack)
     }
@@ -229,8 +237,9 @@ where
             Inst::Extract(ext) => {
                 Some(Self::Extract(extract::Iter::new(haystack, dot, ext, inner)))
             }
-            _ => panic!(),
-            // Inst::Parallel(bs) => Self::Parallel(parallel::Iter::new(haystack, dot, bs, inner)),
+            Inst::Parallel(bs) => Some(Self::Parallel(parallel::Iter::new(
+                haystack, dot, bs, inner,
+            ))),
         }
     }
 }
@@ -243,9 +252,9 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Emit(opt) => opt.take(),
             Self::Extract(ext) => ext.next(),
-            _ => todo!(),
+            Self::Parallel(p) => p.next(),
+            Self::Emit(opt) => opt.take(),
         }
     }
 }

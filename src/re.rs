@@ -18,7 +18,7 @@ pub trait Re: Sized {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Captures {
     caps: Vec<Option<(usize, usize)>>,
 }
@@ -27,9 +27,10 @@ impl Captures {
     /// # Panics
     /// Caps must return at least one item for the full match.
     pub fn new(caps: impl Iterator<Item = Option<(usize, usize)>>) -> Self {
-        Self {
-            caps: caps.collect(),
-        }
+        let caps: Vec<_> = caps.collect();
+        assert!(!caps.is_empty(), "empty captures");
+
+        Self { caps }
     }
 
     fn apply_offset(&mut self, i: usize) {
@@ -65,6 +66,12 @@ impl Captures {
         let (from, to) = self.get(n)?;
 
         Some(&haystack[from..to])
+    }
+
+    pub fn iter_caps<'h>(&self, haystack: &'h str) -> impl Iterator<Item = Option<&'h str>> {
+        self.caps
+            .iter()
+            .map(|cap| cap.map(|(from, to)| &haystack[from..to]))
     }
 }
 

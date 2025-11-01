@@ -80,7 +80,7 @@ where
     }
 
     fn next_captures(&self) -> Option<Captures> {
-        self.inner.re[self.ext.re].captures_between(self.haystack, self.pos, self.haystack.len())
+        self.inner.re[self.ext.re].captures_between(self.haystack, self.pos, self.parent.to())
     }
 
     fn set_extract(&mut self, dot: Dot) {
