@@ -8,7 +8,7 @@ mod se;
 
 pub use ast::{ErrorKind, ParseError};
 pub use re::Re;
-pub use se::{Action, Match, MatchIter, Structex};
+pub use se::{Action, Match, MatchIter, Structex, StructexBuilder};
 
 #[derive(Debug)]
 pub enum Error {

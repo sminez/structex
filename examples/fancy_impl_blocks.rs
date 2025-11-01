@@ -2,7 +2,7 @@
 //! templating for a 'p' print action.
 use regex::Regex;
 use std::collections::HashMap;
-use structex::{Action, Structex};
+use structex::{Action, Structex, StructexBuilder};
 use tinytemplate::TinyTemplate;
 
 const SE: &str = r#"
@@ -13,13 +13,13 @@ v/^impl(?:<.*?>)?.*? for/ {
 
   x/fn(?:.|\n)*?\{/ {
     g/->/ x/fn (\w+)(?:.|\n)*?-> (.*?)\w*\{/ {
-      g/&('. )?mut self/ p/  mut {$1} -> {$2}/;
-      v/&('. )?mut self/ p/      {$1} -> {$2}/;
+      g/(&?('. ))?mut self/ p/  mut {$1} -> {$2}/;
+      v/(&?('. ))?mut self/ p/      {$1} -> {$2}/;
     };
 
     v/->/ x/fn (\w+)(?:.|\n)*\{/ {
-      g/&('. )?mut self/ p/  mut {$1} -> ()/;
-      v/&('. )?mut self/ p/      {$1} -> ()/;
+      g/(&?('. ))?mut self/ p/  mut {$1} -> ()/;
+      v/(&?('. ))?mut self/ p/      {$1} -> ()/;
     };
 
   };
@@ -27,8 +27,12 @@ v/^impl(?:<.*?>)?.*? for/ {
 "#;
 
 fn main() {
-    // Compile the structex
-    let se: Structex<Regex> = Structex::compile(SE).unwrap();
+    // Compile the structex only allowing a 'p' tag that accepts a single argument
+    let se: Structex<Regex> = StructexBuilder::default()
+        .with_allowed_argless_tags("")
+        .with_allowed_single_arg_tags("p")
+        .build(SE)
+        .unwrap();
 
     // Create a new template registry and register each print template that was located by the
     // Structex during compilation.
@@ -65,10 +69,7 @@ fn main() {
                     .map(|(i, s)| (format!("${i}"), s.unwrap_or_default().to_string()))
                     .collect();
 
-                println!(
-                    "{}",
-                    tt.render(template, &ctx).unwrap().replace("\\n", "\n")
-                );
+                println!("{}", tt.render(template, &ctx).unwrap());
             }
 
             // If we somehow end up receiving an unknown template tag then panic

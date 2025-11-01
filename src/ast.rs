@@ -16,6 +16,8 @@ pub enum ErrorKind {
     MultipleBranches,
     UnexpectedChar(char),
     UnexpectedEof,
+    UnknownArgumentTag(char),
+    UnknownTag(char),
 }
 
 impl fmt::Display for ErrorKind {
@@ -29,6 +31,10 @@ impl fmt::Display for ErrorKind {
             Self::MultipleBranches => write!(f, "multiple branches when one was expected"),
             Self::UnexpectedChar(ch) => write!(f, "unexpected character in input '{ch}'"),
             Self::UnexpectedEof => write!(f, "unexpected EOF"),
+            Self::UnknownArgumentTag(ch) => {
+                write!(f, "{ch} is not a registered single argument tag")
+            }
+            Self::UnknownTag(ch) => write!(f, "{ch} is not a registered bare tag"),
         }
     }
 }
@@ -107,15 +113,29 @@ pub(super) struct Action {
 }
 
 #[derive(Debug)]
-pub(super) struct Parser<'a> {
-    input: ParseInput<'a>,
+pub(super) struct Parser<'i, 'c> {
+    input: ParseInput<'i>,
+    allowed_argless_tags: Option<&'c str>,
+    allowed_single_arg_tags: Option<&'c str>,
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(prog: &'a str) -> Self {
+impl<'i, 'c> Parser<'i, 'c> {
+    pub fn new(prog: &'i str) -> Self {
         Self {
             input: ParseInput::new(prog),
+            allowed_argless_tags: None,
+            allowed_single_arg_tags: None,
         }
+    }
+
+    pub fn with_allowed_argless_tags(mut self, allowed: Option<&'c str>) -> Self {
+        self.allowed_argless_tags = allowed;
+        self
+    }
+
+    pub fn with_allowed_single_arg_tags(mut self, allowed: Option<&'c str>) -> Self {
+        self.allowed_single_arg_tags = allowed;
+        self
     }
 
     pub fn parse(&self) -> Result<Ast, ParseError> {
@@ -253,8 +273,20 @@ impl<'a> Parser<'a> {
         self.input.advance();
 
         let s = if self.input.try_char() == Some('/') {
+            if let Some(allowed) = self.allowed_single_arg_tags.as_ref()
+                && !allowed.contains(tag)
+            {
+                return Err(self.error(ErrorKind::UnknownArgumentTag(tag)));
+            }
+
             Some(self.parse_delimited_str()?)
         } else {
+            if let Some(allowed) = self.allowed_argless_tags.as_ref()
+                && !allowed.contains(tag)
+            {
+                return Err(self.error(ErrorKind::UnknownTag(tag)));
+            }
+
             None
         };
 

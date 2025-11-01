@@ -47,29 +47,8 @@ impl<R> Structex<R>
 where
     R: Re,
 {
-    pub fn compile(s: &str) -> Result<Self, Error> {
-        let mut c = Compiler::default();
-        let inst = c.compile(s)?;
-        let Compiler {
-            re,
-            tags,
-            templates,
-        } = c;
-
-        let re = re
-            .into_iter()
-            .map(|re| R::compile(&re).map_err(|e| Error::InvalidRegex(Box::new(e))))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(Self {
-            raw: Arc::from(s),
-            inner: Arc::new(Inner {
-                inst,
-                re,
-                tags,
-                action_content: templates,
-            }),
-        })
+    pub fn compile(se: &str) -> Result<Self, Error> {
+        StructexBuilder::default().build(se)
     }
 
     pub fn as_str(&self) -> &str {
@@ -86,6 +65,98 @@ where
 
     pub fn iter_matches<'h>(&'h self, haystack: &'h str) -> MatchIter<'h, R> {
         MatchIter::new(&self.inner.inst, self.inner.clone(), haystack)
+    }
+}
+
+trait ActionContentFn: Fn(String) -> String + 'static {}
+impl<F> ActionContentFn for F where F: Fn(String) -> String + 'static {}
+
+fn raw_content_string(s: String) -> String {
+    s
+}
+
+fn escaped_content_string(s: String) -> String {
+    s.replace("\\n", "\n").replace("\\t", "\t")
+}
+
+pub struct StructexBuilder {
+    action_content_fn: Box<dyn ActionContentFn>,
+    allowed_argless_tags: Option<String>,
+    allowed_single_arg_tags: Option<String>,
+}
+
+impl StructexBuilder {
+    pub fn with_raw_content_string(mut self) -> Self {
+        self.action_content_fn = Box::new(raw_content_string);
+        self
+    }
+
+    pub fn with_escaped_content_string(mut self) -> Self {
+        self.action_content_fn = Box::new(escaped_content_string);
+        self
+    }
+
+    pub fn with_content_string_fn<F>(mut self, f: F) -> Self
+    where
+        F: Fn(String) -> String + 'static,
+    {
+        self.action_content_fn = Box::new(f);
+        self
+    }
+
+    pub fn with_allowed_argless_tags(mut self, tags: impl Into<String>) -> Self {
+        self.allowed_argless_tags = Some(tags.into());
+        self
+    }
+
+    pub fn with_allowed_single_arg_tags(mut self, tags: impl Into<String>) -> Self {
+        self.allowed_single_arg_tags = Some(tags.into());
+        self
+    }
+
+    pub fn build<R>(self, se: &str) -> Result<Structex<R>, Error>
+    where
+        R: Re,
+    {
+        let mut c = Compiler {
+            allowed_argless_tags: self.allowed_argless_tags,
+            allowed_single_arg_tags: self.allowed_single_arg_tags,
+            ..Default::default()
+        };
+
+        let inst = c.compile(se)?;
+        let Compiler {
+            re,
+            tags,
+            action_content,
+            ..
+        } = c;
+
+        Ok(Structex {
+            raw: Arc::from(se),
+            inner: Arc::new(Inner {
+                inst,
+                re: re
+                    .into_iter()
+                    .map(|re| R::compile(&re).map_err(|e| Error::InvalidRegex(Box::new(e))))
+                    .collect::<Result<Vec<_>, _>>()?,
+                tags,
+                action_content: action_content
+                    .into_iter()
+                    .map(self.action_content_fn)
+                    .collect(),
+            }),
+        })
+    }
+}
+
+impl Default for StructexBuilder {
+    fn default() -> Self {
+        Self {
+            action_content_fn: Box::new(escaped_content_string),
+            allowed_argless_tags: None,
+            allowed_single_arg_tags: None,
+        }
     }
 }
 
