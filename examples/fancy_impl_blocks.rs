@@ -39,7 +39,7 @@ fn main() {
     let mut tt = TinyTemplate::new();
     tt.set_default_formatter(&tinytemplate::format_unescaped);
 
-    for template in se.action_content() {
+    for template in se.action_args() {
         tt.add_template(template, template).unwrap();
     }
 

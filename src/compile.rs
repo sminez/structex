@@ -37,7 +37,7 @@ pub(crate) struct Action {
 pub(crate) struct Compiler {
     pub(crate) re: Vec<String>,
     pub(crate) tags: String,
-    pub(crate) action_content: Vec<String>,
+    pub(crate) action_args: Vec<String>,
     pub(crate) allowed_argless_tags: Option<String>,
     pub(crate) allowed_single_arg_tags: Option<String>,
 }
@@ -87,11 +87,11 @@ impl Compiler {
     }
 
     fn push_template(&mut self, t: String) -> usize {
-        match self.action_content.iter().position(|s| s == &t) {
+        match self.action_args.iter().position(|s| s == &t) {
             Some(idx) => idx,
             None => {
-                self.action_content.push(t);
-                self.action_content.len() - 1
+                self.action_args.push(t);
+                self.action_args.len() - 1
             }
         }
     }

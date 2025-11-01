@@ -55,8 +55,8 @@ where
         &self.raw
     }
 
-    pub fn action_content(&self) -> &[String] {
-        &self.inner.action_content
+    pub fn action_args(&self) -> &[String] {
+        &self.inner.action_args
     }
 
     pub fn tags(&self) -> &str {
@@ -68,31 +68,31 @@ where
     }
 }
 
-trait ActionContentFn: Fn(String) -> String + 'static {}
-impl<F> ActionContentFn for F where F: Fn(String) -> String + 'static {}
+trait ActionArgFn: Fn(String) -> String + 'static {}
+impl<F> ActionArgFn for F where F: Fn(String) -> String + 'static {}
 
-fn raw_content_string(s: String) -> String {
+fn raw_arg_string(s: String) -> String {
     s
 }
 
-fn escaped_content_string(s: String) -> String {
+fn escaped_arg_string(s: String) -> String {
     s.replace("\\n", "\n").replace("\\t", "\t")
 }
 
 pub struct StructexBuilder {
-    action_content_fn: Box<dyn ActionContentFn>,
+    action_content_fn: Box<dyn ActionArgFn>,
     allowed_argless_tags: Option<String>,
     allowed_single_arg_tags: Option<String>,
 }
 
 impl StructexBuilder {
-    pub fn with_raw_content_string(mut self) -> Self {
-        self.action_content_fn = Box::new(raw_content_string);
+    pub fn with_raw_arg_strings(mut self) -> Self {
+        self.action_content_fn = Box::new(raw_arg_string);
         self
     }
 
-    pub fn with_escaped_content_string(mut self) -> Self {
-        self.action_content_fn = Box::new(escaped_content_string);
+    pub fn with_escaped_arg_strings(mut self) -> Self {
+        self.action_content_fn = Box::new(escaped_arg_string);
         self
     }
 
@@ -128,7 +128,7 @@ impl StructexBuilder {
         let Compiler {
             re,
             tags,
-            action_content,
+            action_args,
             ..
         } = c;
 
@@ -141,7 +141,7 @@ impl StructexBuilder {
                     .map(|re| R::compile(&re).map_err(|e| Error::InvalidRegex(Box::new(e))))
                     .collect::<Result<Vec<_>, _>>()?,
                 tags,
-                action_content: action_content
+                action_args: action_args
                     .into_iter()
                     .map(self.action_content_fn)
                     .collect(),
@@ -153,7 +153,7 @@ impl StructexBuilder {
 impl Default for StructexBuilder {
     fn default() -> Self {
         Self {
-            action_content_fn: Box::new(escaped_content_string),
+            action_content_fn: Box::new(escaped_arg_string),
             allowed_argless_tags: None,
             allowed_single_arg_tags: None,
         }
@@ -167,7 +167,7 @@ where
     pub(super) inst: Inst,
     pub(super) re: Vec<R>,
     pub(super) tags: String,
-    pub(super) action_content: Vec<String>,
+    pub(super) action_args: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -233,7 +233,7 @@ impl Action {
     {
         Self {
             tag: a.tag,
-            content: a.content.map(|idx| inner.action_content[idx].clone()),
+            content: a.content.map(|idx| inner.action_args[idx].clone()),
         }
     }
 }
