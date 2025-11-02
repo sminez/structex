@@ -2,7 +2,7 @@
 //! templating for a 'p' print action.
 use regex::Regex;
 use std::collections::HashMap;
-use structex::{Action, Structex, StructexBuilder};
+use structex::{Structex, StructexBuilder};
 use tinytemplate::TinyTemplate;
 
 const SE: &str = r#"
@@ -49,28 +49,10 @@ fn main() {
     let haystack = include_str!("../src/ast.rs");
 
     for m in se.iter_tagged_captures(haystack) {
-        // If we have no action or no template then just print the full match
-        match m.action.as_deref() {
-            None
-            | Some(Action {
-                tag: 'p',
-                arg: None,
-            }) => {
-                println!("{}", m.match_text());
-            }
-
-            // If we have a template, build a templating context from the extracted matches and
-            // render the template
-            Some(Action {
-                tag: 'p',
-                arg: Some(template),
-            }) => {
-                let ctx: HashMap<usize, Option<&str>> = m.iter_submatches().enumerate().collect();
-                println!("{}", tt.render(template, &ctx).unwrap());
-            }
-
-            // If we somehow end up receiving an unknown template tag then panic
-            Some(action) => panic!("unknown action: {}", action.tag),
-        }
+        // We know we only have 'p' actions with an argument from the compilation config we set
+        // above, so we can safely unwrap the match argument for use as our template.
+        let template = m.arg().unwrap();
+        let ctx: HashMap<usize, Option<&str>> = m.iter_submatches().enumerate().collect();
+        println!("{}", tt.render(template, &ctx).unwrap());
     }
 }
