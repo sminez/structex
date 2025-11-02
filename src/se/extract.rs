@@ -2,7 +2,7 @@ use crate::{
     Re,
     compile::Inst,
     re::RawCaptures,
-    se::{Dot, Inner, Match, MatchIterInner},
+    se::{Dot, Inner, Match, MatchesInner},
 };
 use std::sync::Arc;
 
@@ -54,7 +54,7 @@ where
     /// The original parent dot we are extracting from
     parent: Dot,
     /// The child branch we are currently iterating over
-    child: Option<Box<MatchIterInner<'h, R>>>,
+    child: Option<Box<MatchesInner<'h, R>>>,
     /// The current match
     held: Option<RawCaptures>,
     /// The current byte offset we are up to
@@ -85,13 +85,13 @@ where
 
     fn set_extract(&mut self, dot: Dot) {
         self.child = self.ext.on_extract.as_ref().and_then(|extract| {
-            MatchIterInner::new(extract, self.inner.clone(), self.haystack, dot).map(Box::new)
+            MatchesInner::new(extract, self.inner.clone(), self.haystack, dot).map(Box::new)
         });
     }
 
     fn set_filter(&mut self, dot: Dot) {
         self.child = self.ext.on_filter.as_ref().and_then(|filter| {
-            MatchIterInner::new(filter, self.inner.clone(), self.haystack, dot).map(Box::new)
+            MatchesInner::new(filter, self.inner.clone(), self.haystack, dot).map(Box::new)
         });
     }
 }

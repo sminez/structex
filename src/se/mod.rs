@@ -189,8 +189,8 @@ where
     ///     &[('B', "This"), ('A', "Bob"), ('A', "Alice"), ('A', "friend")]
     /// );
     /// ```
-    pub fn iter_matches<'h>(&'h self, haystack: &'h str) -> MatchIter<'h, R> {
-        MatchIter::new(&self.inner.inst, self.inner.clone(), haystack)
+    pub fn iter_matches<'h>(&'h self, haystack: &'h str) -> Matches<'h, R> {
+        Matches::new(&self.inner.inst, self.inner.clone(), haystack)
     }
 }
 
@@ -416,21 +416,37 @@ impl Dot {
     }
 }
 
+/// Represents a tagged capture group for a single match position located by a [Structex].
+///
+/// If an action was specified at the match point in the original [Structex] then `action` will
+/// contain that action, otherwise it will be `None`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Match<'h> {
+    /// The match and any captures extracted from it.
     pub captures: Captures<'h>,
+    /// An optional [Action] assigned by the match if one was specified in the [Structex]
+    /// expression.
     pub action: Option<Arc<Action>>,
 }
 
 impl<'h> Match<'h> {
+    /// Returns the substring of the haystack that matched.
+    pub fn as_str(&self) -> &str {
+        self.captures.match_text()
+    }
+
+    /// Returns the action tag that was associated with the match if one was specified.
     pub fn tag(&self) -> Option<char> {
         self.action.as_ref().map(|a| a.tag)
     }
 
+    /// Returns the argument following the action tag that was associated with the match if one
+    /// was specified.
     pub fn arg(&self) -> Option<&str> {
         self.action.as_ref().and_then(|a| a.arg.as_deref())
     }
 
+    /// Whether or not this match has an assigned [Action].
     pub fn has_action(&self) -> bool {
         self.action.is_some()
     }
@@ -444,28 +460,37 @@ impl<'h> Deref for Match<'h> {
     }
 }
 
+/// A tag with optional argument attached to a match position as part of a [Structex].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Action {
+    /// The tag character that was specified.
     pub tag: char,
+    /// The contents of the slash delimited string following the tag (if specified).
     pub arg: Option<String>,
 }
 
-pub struct MatchIter<'h, R>
+/// An iterator over all matches in a haystack.
+///
+/// This iterator yields [Match] values. The iterator stops when no more matches can be found.
+/// `'h` is the lifetime of the haystack.
+///
+/// This iterator is created by [Structex::iter_matches].
+pub struct Matches<'h, R>
 where
     R: Re,
 {
     haystack: &'h str,
-    inner: Option<MatchIterInner<'h, R>>,
+    inner: Option<MatchesInner<'h, R>>,
 }
 
-impl<'h, R> MatchIter<'h, R>
+impl<'h, R> Matches<'h, R>
 where
     R: Re,
 {
     fn new(inst: &'h Inst, inner: Arc<Inner<R>>, haystack: &'h str) -> Self {
         Self {
             haystack,
-            inner: MatchIterInner::new(
+            inner: MatchesInner::new(
                 inst,
                 inner,
                 haystack,
@@ -478,7 +503,7 @@ where
     }
 }
 
-impl<'h, R> Iterator for MatchIter<'h, R>
+impl<'h, R> Iterator for Matches<'h, R>
 where
     R: Re,
 {
@@ -494,7 +519,7 @@ where
     }
 }
 
-enum MatchIterInner<'h, R>
+enum MatchesInner<'h, R>
 where
     R: Re,
 {
@@ -503,7 +528,7 @@ where
     Emit(Option<Match<'h>>),
 }
 
-impl<'h, R> MatchIterInner<'h, R>
+impl<'h, R> MatchesInner<'h, R>
 where
     R: Re,
 {
@@ -534,7 +559,7 @@ where
     }
 }
 
-impl<'h, R> Iterator for MatchIterInner<'h, R>
+impl<'h, R> Iterator for MatchesInner<'h, R>
 where
     R: Re,
 {

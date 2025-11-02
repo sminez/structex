@@ -1,7 +1,7 @@
 use crate::{
     Re,
     compile::Inst,
-    se::{Dot, Inner, Match, MatchIterInner},
+    se::{Dot, Inner, Match, MatchesInner},
 };
 use std::sync::Arc;
 
@@ -20,7 +20,7 @@ where
         let branches = branches
             .iter()
             .flat_map(|inst| {
-                MatchIterInner::new(inst, inner.clone(), haystack, dot.clone())
+                MatchesInner::new(inst, inner.clone(), haystack, dot.clone())
                     .map(|it| Branch { held: None, it })
             })
             .collect();
@@ -64,7 +64,7 @@ where
     R: Re,
 {
     held: Option<Match<'h>>,
-    it: MatchIterInner<'h, R>,
+    it: MatchesInner<'h, R>,
 }
 
 impl<'h, R> Branch<'h, R>

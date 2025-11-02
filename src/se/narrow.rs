@@ -1,7 +1,7 @@
 use crate::{
     Re,
     compile::Inst,
-    se::{Dot, Inner, MatchIterInner},
+    se::{Dot, Inner, MatchesInner},
 };
 use std::sync::Arc;
 
@@ -17,13 +17,13 @@ impl Narrow {
         haystack: &'h str,
         dot: Dot,
         inner: Arc<Inner<R>>,
-    ) -> Option<MatchIterInner<'h, R>>
+    ) -> Option<MatchesInner<'h, R>>
     where
         R: Re,
     {
         let (from, to) = dot.loc();
         let cap = inner.re[self.re].captures_between(haystack, from, to)?;
 
-        MatchIterInner::new(&self.node, inner, haystack, Dot::Captures(cap))
+        MatchesInner::new(&self.node, inner, haystack, Dot::Captures(cap))
     }
 }

@@ -66,7 +66,7 @@ fn main() {
                 arg: Some(template),
             }) => {
                 let ctx: HashMap<String, String> = m
-                    .iter_caps()
+                    .iter_submatches()
                     .enumerate()
                     .map(|(i, s)| (format!("${i}"), s.unwrap_or_default().to_string()))
                     .collect();

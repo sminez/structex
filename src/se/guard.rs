@@ -1,7 +1,7 @@
 use crate::{
     Re,
     compile::Inst,
-    se::{Dot, Inner, MatchIterInner},
+    se::{Dot, Inner, MatchesInner},
 };
 use std::sync::Arc;
 
@@ -47,7 +47,7 @@ impl Guard {
         haystack: &'h str,
         dot: Dot,
         inner: Arc<Inner<R>>,
-    ) -> Option<MatchIterInner<'h, R>>
+    ) -> Option<MatchesInner<'h, R>>
     where
         R: Re,
     {
@@ -58,8 +58,8 @@ impl Guard {
             self.if_matching.as_ref(),
             self.if_not_matching.as_ref(),
         ) {
-            (true, Some(inst), _) => MatchIterInner::new(inst, inner, haystack, dot),
-            (false, _, Some(inst)) => MatchIterInner::new(inst, inner, haystack, dot),
+            (true, Some(inst), _) => MatchesInner::new(inst, inner, haystack, dot),
+            (false, _, Some(inst)) => MatchesInner::new(inst, inner, haystack, dot),
             _ => None,
         }
     }

@@ -62,7 +62,7 @@ pub trait Re: Sized {
 /// Represents the capture group positions for a single [Re] match only in terms of byte offsets
 /// into the original haystack.
 ///
-/// This is converted into a [Captures] by [MatchIter][crate::MatchIter] as matches are returned
+/// This is converted into a [Captures] by [Matches][crate::Matches] as matches are returned
 /// during iteration.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RawCaptures {
@@ -142,6 +142,18 @@ impl<'h> Captures<'h> {
         self.caps.get(n).copied()?
     }
 
+    /// The length of the full match in bytes.
+    pub fn len(&self) -> usize {
+        let (from, to) = self.get_match();
+        to - from
+    }
+
+    /// Whether or not this match is equal to the empty string.
+    pub fn is_empty(&self) -> bool {
+        let (from, to) = self.get_match();
+        from == to
+    }
+
     /// The full text of the match in the original haystack.
     pub fn match_text(&self) -> &'h str {
         let (from, to) = self.get_match();
@@ -157,7 +169,7 @@ impl<'h> Captures<'h> {
     }
 
     /// Iterate over all submatches starting with the full match.
-    pub fn iter_caps(&self) -> impl Iterator<Item = Option<&'h str>> {
+    pub fn iter_submatches(&self) -> impl Iterator<Item = Option<&'h str>> {
         self.caps
             .iter()
             .map(|cap| cap.map(|(from, to)| &self.haystack[from..to]))
