@@ -32,6 +32,9 @@ jobs:
     - name: Run tests
       run: cargo nextest run --workspace --no-fail-fast
 
+    - name: Run doc tests
+      run: cargo test --doc
+
   rustfmt:
     name: Ensure rustfmt is happy
     runs-on: ubuntu-latest
