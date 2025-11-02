@@ -7,7 +7,7 @@ mod re;
 mod se;
 
 pub use ast::{ErrorKind, ParseError};
-pub use re::Re;
+pub use re::{Captures, Re};
 pub use se::{Action, Match, MatchIter, Structex, StructexBuilder};
 
 #[derive(Debug)]

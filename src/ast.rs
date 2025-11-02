@@ -2,7 +2,7 @@
 use crate::parse::{ParseInput, Span};
 use std::fmt;
 
-/// An error that can arrise during expression parsing.
+/// An error that can arise during expression parsing.
 pub type ParseError = crate::parse::Error<ErrorKind>;
 
 /// A list specifying the different categories of errors that can be encountered while parsing a
