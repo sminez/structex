@@ -28,10 +28,10 @@ v/^impl(?:<.*?>)?.*? for/ {
 
 fn main() {
     // Compile the structex only allowing a 'p' tag that accepts a single argument
-    let se: Structex<Regex> = StructexBuilder::default()
+    let se: Structex<Regex> = StructexBuilder::new(SE)
         .with_allowed_argless_tags("")
         .with_allowed_single_arg_tags("p")
-        .build(SE)
+        .build()
         .unwrap();
 
     // Create a new template registry and register each print template that was located by the

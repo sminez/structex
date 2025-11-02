@@ -78,7 +78,7 @@ where
     /// assert!(Structex::new("x/hello, (world|sailor)!/ p").is_ok());
     /// ```
     pub fn new(se: &str) -> Result<Self, Error> {
-        StructexBuilder::default().build(se)
+        StructexBuilder::new(se).build()
     }
 
     /// Returns the original string of this structex.
@@ -128,7 +128,7 @@ where
 
     /// Iterate over all tagged [matches][Match] within the given haystack in order.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// By default, matches will be emitted without an associated action attached to them,
     /// allowing you to write simple expressions that filter and refine regions of the haystack to
@@ -201,46 +201,138 @@ fn raw_arg_string(s: String) -> String {
     s
 }
 
-fn escaped_arg_string(s: String) -> String {
+fn newline_and_tab_string(s: String) -> String {
     s.replace("\\n", "\n").replace("\\t", "\t")
 }
 
+/// A configurable builder for a [Structex].
+///
+/// This builder can be used to configure which action tags are allowed to be used within the
+/// compiled expression as well as set how action argument strings should be processed.
+#[derive(Clone)]
 pub struct StructexBuilder {
-    action_content_fn: Box<dyn ActionArgFn>,
+    expr: String,
+    action_arg_fn: Arc<dyn ActionArgFn>,
     allowed_argless_tags: Option<String>,
     allowed_single_arg_tags: Option<String>,
 }
 
 impl StructexBuilder {
-    pub fn with_raw_arg_strings(mut self) -> Self {
-        self.action_content_fn = Box::new(raw_arg_string);
+    /// Constructs a new builder with the default configuration for the given expression.
+    ///
+    /// If the pattern is invalid then an error will be returned when [StructexBuilder::build] is
+    /// called.
+    pub fn new(expr: impl Into<String>) -> Self {
+        Self {
+            expr: expr.into(),
+            action_arg_fn: Arc::new(newline_and_tab_string),
+            allowed_argless_tags: None,
+            allowed_single_arg_tags: None,
+        }
+    }
+
+    /// This prevents interpretation of `\n` and `\t` escape sequences inside of action argument
+    /// strings (the default behaviour).
+    ///
+    /// # Example
+    /// ```
+    /// use structex::{Structex, StructexBuilder};
+    ///
+    /// let expr = "x/.*foo/ p/\nfound foo\t/";
+    /// let se: Structex<regex::Regex> = StructexBuilder::new(expr)
+    ///     .raw_arg_strings()
+    ///     .build()
+    ///     .unwrap();
+    ///
+    /// assert_eq!(se.actions()[0].arg.as_deref(), Some("\nfound foo\t"));
+    /// ```
+    pub fn raw_arg_strings(mut self) -> Self {
+        self.action_arg_fn = Arc::new(raw_arg_string);
         self
     }
 
-    pub fn with_escaped_arg_strings(mut self) -> Self {
-        self.action_content_fn = Box::new(escaped_arg_string);
-        self
-    }
-
-    pub fn with_content_string_fn<F>(mut self, f: F) -> Self
+    /// This sets a custom argument mapping function that will be called for all tag arguments
+    /// found within the compiled expression.
+    ///
+    /// # Example
+    /// ```
+    /// use structex::{Structex, StructexBuilder};
+    ///
+    /// let expr = "x/.*foo/ p/found foo/";
+    /// let se: Structex<regex::Regex> = StructexBuilder::new(expr)
+    ///     .action_argument_fn(|s| s.to_ascii_uppercase())
+    ///     .build()
+    ///     .unwrap();
+    ///
+    /// assert_eq!(se.actions()[0].arg.as_deref(), Some("FOUND FOO"));
+    /// ```
+    pub fn action_argument_fn<F>(mut self, f: F) -> Self
     where
         F: Fn(String) -> String + 'static,
     {
-        self.action_content_fn = Box::new(f);
+        self.action_arg_fn = Arc::new(f);
         self
     }
 
+    /// This sets the allowed tags when no slash delimited argument is provided.
+    ///
+    /// By default, all tags are allowed but this may be used to cause a compile error if the input
+    /// expression contains tags that were not expected.
+    ///
+    /// # Example
+    /// ```
+    /// use structex::{Structex, StructexBuilder};
+    ///
+    /// let expr = "x/.*foo/ A";
+    ///
+    /// // By default all tags are allowed
+    /// assert!(Structex::<regex::Regex>::new(expr).is_ok());
+    ///
+    /// // If only 'B' is allowed then the above expression is invalid
+    /// assert!(
+    ///     StructexBuilder::new(expr)
+    ///         .with_allowed_argless_tags('B')
+    ///         .build::<regex::Regex>()
+    ///         .is_err()
+    /// );
+    /// ```
     pub fn with_allowed_argless_tags(mut self, tags: impl Into<String>) -> Self {
         self.allowed_argless_tags = Some(tags.into());
         self
     }
 
+    /// This sets the allowed tags when a slash delimited argument is provided.
+    ///
+    /// By default, all tags are allowed but this may be used to cause a compile error if the input
+    /// expression contains tags that were not expected.
+    ///
+    /// # Example
+    /// ```
+    /// use structex::{Structex, StructexBuilder};
+    ///
+    /// let expr = "x/.*foo/ A/foo/";
+    ///
+    /// // By default all tags are allowed
+    /// assert!(Structex::<regex::Regex>::new(expr).is_ok());
+    ///
+    /// // If only 'B' is allowed then the above expression is invalid
+    /// assert!(
+    ///     StructexBuilder::new(expr)
+    ///         .with_allowed_single_arg_tags('B')
+    ///         .build::<regex::Regex>()
+    ///         .is_err()
+    /// );
+    /// ```
     pub fn with_allowed_single_arg_tags(mut self, tags: impl Into<String>) -> Self {
         self.allowed_single_arg_tags = Some(tags.into());
         self
     }
 
-    pub fn build<R>(self, se: &str) -> Result<Structex<R>, Error>
+    /// Compiles the expression passed to [StructexBuilder::new] with the configuration set on this
+    /// builder.
+    ///
+    /// If the expression was invalid, an error is returned.
+    pub fn build<R>(self) -> Result<Structex<R>, Error>
     where
         R: Re,
     {
@@ -250,7 +342,7 @@ impl StructexBuilder {
             ..Default::default()
         };
 
-        let inst = c.compile(se)?;
+        let inst = c.compile(&self.expr)?;
         let Compiler {
             re, tags, actions, ..
         } = c;
@@ -258,13 +350,13 @@ impl StructexBuilder {
         let actions: Vec<_> = actions
             .into_iter()
             .map(|mut a| {
-                a.arg = a.arg.take().map(|s| (self.action_content_fn)(s));
+                a.arg = a.arg.take().map(|s| (self.action_arg_fn)(s));
                 Arc::new(a)
             })
             .collect();
 
         Ok(Structex {
-            raw: Arc::from(se),
+            raw: Arc::from(self.expr),
             inner: Arc::new(Inner {
                 inst,
                 re: re
@@ -275,16 +367,6 @@ impl StructexBuilder {
                 actions,
             }),
         })
-    }
-}
-
-impl Default for StructexBuilder {
-    fn default() -> Self {
-        Self {
-            action_content_fn: Box::new(escaped_arg_string),
-            allowed_argless_tags: None,
-            allowed_single_arg_tags: None,
-        }
     }
 }
 
