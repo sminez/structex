@@ -39,8 +39,8 @@ pub trait Re: Sized {
     /// match along with the matches of each capture group in the regex. If no match is found, then
     /// None is returned.
     ///
-    /// See [Captures::new] for requirements around constructing the return type.
-    fn captures(&self, haystack: &str) -> Option<Captures>;
+    /// See [RawCaptures::new] for requirements around constructing the return type.
+    fn captures(&self, haystack: &str) -> Option<RawCaptures>;
 
     /// This method provides the same semantics as [Re::is_match] but restricts the match to be
     /// between the provided byte offsets within the given haystack.
@@ -51,7 +51,7 @@ pub trait Re: Sized {
     /// This method provides the same semantics as [Re::captures] but restricts the match to be
     /// between the provided byte offsets within the given haystack, updating the returned captures
     /// to provide the correct offsets for each match and submatch position.
-    fn captures_between(&self, haystack: &str, from: usize, to: usize) -> Option<Captures> {
+    fn captures_between(&self, haystack: &str, from: usize, to: usize) -> Option<RawCaptures> {
         let mut caps = self.captures(&haystack[from..to])?;
         caps.apply_offset(from);
 
@@ -59,16 +59,21 @@ pub trait Re: Sized {
     }
 }
 
-/// Represents the capture group positions for a single [Re] match in terms of byte offsets into
-/// the original haystack that the match was run against.
+/// Represents the capture group positions for a single [Re] match only in terms of byte offsets
+/// into the original haystack.
+///
+/// This is converted into a [Captures] by [MatchIter][crate::MatchIter] as matches are returned
+/// during iteration.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Captures {
-    caps: Vec<Option<(usize, usize)>>,
+pub struct RawCaptures {
+    pub(crate) caps: Vec<Option<(usize, usize)>>,
 }
 
-impl Captures {
+impl RawCaptures {
+    /// Constructs a new [RawCaptures] from capture group byte offsets.
+    ///
     /// # Panics
-    /// Caps must return at least one item for the full match.
+    /// The provided `caps` iterator must return at least one item for the full match.
     pub fn new(caps: impl Iterator<Item = Option<(usize, usize)>>) -> Self {
         let caps: Vec<_> = caps.collect();
         assert!(!caps.is_empty(), "empty captures");
@@ -83,38 +88,79 @@ impl Captures {
         }
     }
 
+    pub(crate) fn get_match(&self) -> (usize, usize) {
+        self.caps[0].unwrap()
+    }
+
+    pub(crate) fn from(&self) -> usize {
+        self.get_match().0
+    }
+
+    pub(crate) fn to(&self) -> usize {
+        self.get_match().1
+    }
+}
+
+/// Represents the capture group positions for a single [Re] match in terms of byte offsets into
+/// the original haystack that the match was run against.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Captures<'h> {
+    haystack: &'h str,
+    caps: Vec<Option<(usize, usize)>>,
+}
+
+impl<'h> Captures<'h> {
+    pub(crate) fn stubbed(caps: Vec<Option<(usize, usize)>>) -> Self {
+        Self { haystack: "", caps }
+    }
+
+    pub(crate) fn set_haystack(&mut self, haystack: &'h str) {
+        self.haystack = haystack;
+    }
+
+    /// The byte offset that this match starts at.
     pub fn from(&self) -> usize {
         self.get_match().0
     }
 
+    /// The byte offset that this match ends at.
     pub fn to(&self) -> usize {
         self.get_match().1
     }
 
+    /// The start and end byte offsets of this match.
     pub fn get_match(&self) -> (usize, usize) {
         self.caps[0].unwrap()
     }
 
+    /// The start and end byte offsets of the given submatch.
+    ///
+    /// Submatch 0 is guaranteed to be `Some`, with [get_match][Captures::get_match] available as a
+    /// convenience method to directly access it. All other submatches may return `None` if they
+    /// were not present in the matched pattern.
     pub fn get(&self, n: usize) -> Option<(usize, usize)> {
         self.caps.get(n).copied()?
     }
 
-    pub fn match_text<'h>(&self, haystack: &'h str) -> &'h str {
+    /// The full text of the match in the original haystack.
+    pub fn match_text(&self) -> &'h str {
         let (from, to) = self.get_match();
 
-        &haystack[from..to]
+        &self.haystack[from..to]
     }
 
-    pub fn submatch_text<'h>(&self, haystack: &'h str, n: usize) -> Option<&'h str> {
+    /// The full text of the submatch, if present, in the original haystack.
+    pub fn submatch_text(&self, n: usize) -> Option<&'h str> {
         let (from, to) = self.get(n)?;
 
-        Some(&haystack[from..to])
+        Some(&self.haystack[from..to])
     }
 
-    pub fn iter_caps<'h>(&self, haystack: &'h str) -> impl Iterator<Item = Option<&'h str>> {
+    /// Iterate over all submatches starting with the full match.
+    pub fn iter_caps(&self) -> impl Iterator<Item = Option<&'h str>> {
         self.caps
             .iter()
-            .map(|cap| cap.map(|(from, to)| &haystack[from..to]))
+            .map(|cap| cap.map(|(from, to)| &self.haystack[from..to]))
     }
 }
 
@@ -130,10 +176,10 @@ impl Re for regex::Regex {
         self.is_match(haystack)
     }
 
-    fn captures(&self, haystack: &str) -> Option<Captures> {
+    fn captures(&self, haystack: &str) -> Option<RawCaptures> {
         let caps = self.captures(haystack)?;
 
-        Some(Captures::new(
+        Some(RawCaptures::new(
             caps.iter()
                 .map(|cap| cap.map(|cap| (cap.start(), cap.end()))),
         ))

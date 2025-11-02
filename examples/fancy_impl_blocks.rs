@@ -56,7 +56,7 @@ fn main() {
                 tag: 'p',
                 arg: None,
             }) => {
-                println!("{}", m.match_text(haystack));
+                println!("{}", m.match_text());
             }
 
             // If we have a template, build a templating context from the extracted matches and
@@ -66,7 +66,7 @@ fn main() {
                 arg: Some(ref template),
             }) => {
                 let ctx: HashMap<String, String> = m
-                    .iter_caps(haystack)
+                    .iter_caps()
                     .enumerate()
                     .map(|(i, s)| (format!("${i}"), s.unwrap_or_default().to_string()))
                     .collect();

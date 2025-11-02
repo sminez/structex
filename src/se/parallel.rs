@@ -33,7 +33,7 @@ impl<'h, R> Iterator for Iter<'h, R>
 where
     R: Re,
 {
-    type Item = Match;
+    type Item = Match<'h>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.branches.retain_mut(|b| b.update());
@@ -63,7 +63,7 @@ struct Branch<'h, R>
 where
     R: Re,
 {
-    held: Option<Match>,
+    held: Option<Match<'h>>,
     it: MatchIterInner<'h, R>,
 }
 

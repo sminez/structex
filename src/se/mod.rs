@@ -3,7 +3,7 @@
 use crate::{
     Error,
     compile::{Compiler, Inst},
-    re::{Captures, Re},
+    re::{Captures, RawCaptures, Re},
 };
 use std::{fmt, ops::Deref, sync::Arc};
 
@@ -174,7 +174,7 @@ where
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum Dot {
     Range { from: usize, to: usize },
-    Captures(Captures),
+    Captures(RawCaptures),
 }
 
 impl Dot {
@@ -199,22 +199,22 @@ impl Dot {
         }
     }
 
-    fn into_captures(self) -> Captures {
+    fn into_stubbed_captures<'h>(self) -> Captures<'h> {
         match self {
-            Self::Range { from, to } => Captures::new(std::iter::once(Some((from, to)))),
-            Self::Captures(c) => c,
+            Self::Range { from, to } => Captures::stubbed(vec![Some((from, to))]),
+            Self::Captures(c) => Captures::stubbed(c.caps),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Match {
-    pub captures: Captures,
+pub struct Match<'h> {
+    pub captures: Captures<'h>,
     pub action: Option<Action>,
 }
 
-impl Deref for Match {
-    type Target = Captures;
+impl<'h> Deref for Match<'h> {
+    type Target = Captures<'h>;
 
     fn deref(&self) -> &Self::Target {
         &self.captures
@@ -231,6 +231,7 @@ pub struct MatchIter<'h, R>
 where
     R: Re,
 {
+    haystack: &'h str,
     inner: Option<MatchIterInner<'h, R>>,
 }
 
@@ -240,6 +241,7 @@ where
 {
     fn new(inst: &'h Inst, inner: Arc<Inner<R>>, haystack: &'h str) -> Self {
         Self {
+            haystack,
             inner: MatchIterInner::new(
                 inst,
                 inner,
@@ -257,10 +259,15 @@ impl<'h, R> Iterator for MatchIter<'h, R>
 where
     R: Re,
 {
-    type Item = Match;
+    type Item = Match<'h>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.as_mut().and_then(|inner| inner.next())
+        self.inner.as_mut().and_then(|inner| {
+            inner.next().map(|mut m| {
+                m.captures.set_haystack(self.haystack);
+                m
+            })
+        })
     }
 }
 
@@ -270,7 +277,7 @@ where
 {
     Extract(extract::Iter<'h, R>),
     Parallel(parallel::Iter<'h, R>),
-    Emit(Option<Match>),
+    Emit(Option<Match<'h>>),
 }
 
 impl<'h, R> MatchIterInner<'h, R>
@@ -281,11 +288,11 @@ where
         match inst {
             // EmitMatch and Action just emit their value
             Inst::EmitMatch => Some(Self::Emit(Some(Match {
-                captures: dot.into_captures(),
+                captures: dot.into_stubbed_captures(),
                 action: None,
             }))),
             Inst::Action(i) => Some(Self::Emit(Some(Match {
-                captures: dot.into_captures(),
+                captures: dot.into_stubbed_captures(),
                 action: Some(inner.actions[*i].clone()),
             }))),
 
@@ -308,7 +315,7 @@ impl<'h, R> Iterator for MatchIterInner<'h, R>
 where
     R: Re,
 {
-    type Item = Match;
+    type Item = Match<'h>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {

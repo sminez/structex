@@ -1,7 +1,7 @@
 use crate::{
     Re,
     compile::Inst,
-    re::Captures,
+    re::RawCaptures,
     se::{Dot, Inner, Match, MatchIterInner},
 };
 use std::sync::Arc;
@@ -56,7 +56,7 @@ where
     /// The child branch we are currently iterating over
     child: Option<Box<MatchIterInner<'h, R>>>,
     /// The current match
-    held: Option<Captures>,
+    held: Option<RawCaptures>,
     /// The current byte offset we are up to
     pos: usize,
 }
@@ -79,7 +79,7 @@ where
         }
     }
 
-    fn next_captures(&self) -> Option<Captures> {
+    fn next_captures(&self) -> Option<RawCaptures> {
         self.inner.re[self.ext.re].captures_between(self.haystack, self.pos, self.parent.to())
     }
 
@@ -100,7 +100,7 @@ impl<'h, R> Iterator for Iter<'h, R>
 where
     R: Re,
 {
-    type Item = Match;
+    type Item = Match<'h>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
