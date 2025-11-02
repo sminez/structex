@@ -11,7 +11,7 @@ x/fn (\w+)(?:.|\n)*?-> (.*?) \{/    # extract the function name and return type 
 
 fn main() {
     // Compile the structex using the regex crate as the underlying engine.
-    let se: Structex<Regex> = Structex::compile(SE).unwrap();
+    let se: Structex<Regex> = Structex::new(SE).unwrap();
 
     // Match against the ast.rs rust file from this crate
     let haystack = include_str!("../src/ast.rs");

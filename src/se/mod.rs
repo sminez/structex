@@ -47,7 +47,7 @@ impl<R> Structex<R>
 where
     R: Re,
 {
-    pub fn compile(se: &str) -> Result<Self, Error> {
+    pub fn new(se: &str) -> Result<Self, Error> {
         StructexBuilder::default().build(se)
     }
 
