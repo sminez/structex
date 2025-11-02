@@ -142,7 +142,7 @@ impl StructexBuilder {
                 inst,
                 re: re
                     .into_iter()
-                    .map(|re| R::compile(&re).map_err(|e| Error::InvalidRegex(Box::new(e))))
+                    .map(|re| R::compile(&re).map_err(|e| Error::Regex(Box::new(e))))
                     .collect::<Result<Vec<_>, _>>()?,
                 tags,
                 actions,
