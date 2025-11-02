@@ -30,7 +30,7 @@ pub(crate) enum Inst {
 #[derive(Debug, Default)]
 pub(crate) struct Compiler {
     pub(crate) re: Vec<String>,
-    pub(crate) tags: String,
+    pub(crate) tags: Vec<char>,
     pub(crate) actions: Vec<Action>,
     pub(crate) allowed_argless_tags: Option<String>,
     pub(crate) allowed_single_arg_tags: Option<String>,
@@ -43,7 +43,10 @@ impl Compiler {
             .with_allowed_single_arg_tags(self.allowed_single_arg_tags.as_deref())
             .parse()?;
 
-        Ok(self.instruction_for(ast))
+        let res = Ok(self.instruction_for(ast));
+        self.tags.sort();
+
+        res
     }
 
     fn instruction_for(&mut self, node: Ast) -> Inst {
@@ -75,7 +78,7 @@ impl Compiler {
     }
 
     fn push_tag(&mut self, tag: char) {
-        if !self.tags.contains(tag) {
+        if !self.tags.contains(&tag) {
             self.tags.push(tag)
         }
     }

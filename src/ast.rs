@@ -420,8 +420,9 @@ impl<'i, 'c> Parser<'i, 'c> {
     /// Can't use ParseInput::read_until for this (or return &str) as we need to handle
     /// escaping the delimiter inside of the string.
     fn parse_delimited_str(&self) -> Result<String, ParseError> {
-        assert_eq!(self.input.char(), '/');
-        if !self.input.advance() {
+        if self.input.try_char() != Some('/') {
+            return Err(self.error(ErrorKind::MissingDelimiter('/')));
+        } else if !self.input.advance() {
             return Err(self.error(ErrorKind::UnexpectedEof));
         }
 
