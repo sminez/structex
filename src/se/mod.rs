@@ -16,6 +16,12 @@ pub(crate) use extract::Extract;
 pub(crate) use guard::Guard;
 pub(crate) use narrow::Narrow;
 
+/// A compiled structural regular expression backed by an underlying regular expression engine.
+///
+/// A `Structex` can be used to search for tagged substrings within a haystack supported by the
+/// regular expression engine it is backed by. The primary API for making use of a `Structex` is
+/// the [iter_matches][Structex::iter_matches] method which will iterate over the tagged
+/// [Matches][Match] within a given haystack as it is searched.
 #[derive(Clone)]
 pub struct Structex<R>
 where
@@ -47,15 +53,46 @@ impl<R> Structex<R>
 where
     R: Re,
 {
+    /// Compiles a structural regular expression. Once compiled it may be used repeatedly and cloned
+    /// cheaply, but note that compilation can be an expensive process so [Structex] instances
+    /// should be reused wherever possible.
+    ///
+    /// # Error
+    /// If an invalid expression is given then an error is returned. The exact expressions that are
+    /// valid to compile will depend on the underlying regular expression engine being used.
+    ///
+    /// # Example
+    /// ```
+    /// // A Structex backed by the regex crate
+    /// type Structex = structex::Structex<regex::Regex>;
+    ///
+    /// // An empty expression is always invalid
+    /// assert!(Structex::new("").is_err());
+    ///
+    /// // The top level expression must not be a bare action
+    /// assert!(Structex::new("P/I am invalid/").is_err());
+    ///
+    /// // A valid
+    /// assert!(Structex::new("x/hello, (world|sailor)!/ p").is_ok());
+    /// ```
     pub fn new(se: &str) -> Result<Self, Error> {
         StructexBuilder::default().build(se)
     }
 
+    /// Returns the original string of this structex.
+    ///
+    /// # Example
+    /// ```
+    /// type Structex = structex::Structex<regex::Regex>;
+    ///
+    /// let se = Structex::new("x/foo.*bar/ p").unwrap();
+    /// assert_eq!(se.as_str(), "x/foo.*bar/ p");
+    /// ```
     pub fn as_str(&self) -> &str {
         &self.raw
     }
 
-    pub fn actions(&self) -> &[Action] {
+    pub fn actions(&self) -> &[Arc<Action>] {
         &self.inner.actions
     }
 
@@ -126,15 +163,16 @@ impl StructexBuilder {
 
         let inst = c.compile(se)?;
         let Compiler {
-            re,
-            tags,
-            mut actions,
-            ..
+            re, tags, actions, ..
         } = c;
 
-        for a in actions.iter_mut() {
-            a.arg = a.arg.take().map(|s| (self.action_content_fn)(s));
-        }
+        let actions: Vec<_> = actions
+            .into_iter()
+            .map(|mut a| {
+                a.arg = a.arg.take().map(|s| (self.action_content_fn)(s));
+                Arc::new(a)
+            })
+            .collect();
 
         Ok(Structex {
             raw: Arc::from(se),
@@ -168,7 +206,7 @@ where
     pub(super) inst: Inst,
     pub(super) re: Vec<R>,
     pub(super) tags: String,
-    pub(super) actions: Vec<Action>,
+    pub(super) actions: Vec<Arc<Action>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -210,7 +248,7 @@ impl Dot {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Match<'h> {
     pub captures: Captures<'h>,
-    pub action: Option<Action>,
+    pub action: Option<Arc<Action>>,
 }
 
 impl<'h> Deref for Match<'h> {

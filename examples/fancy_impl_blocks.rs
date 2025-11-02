@@ -50,7 +50,7 @@ fn main() {
 
     for m in se.iter_matches(haystack) {
         // If we have no action or no template then just print the full match
-        match m.action {
+        match m.action.as_deref() {
             None
             | Some(Action {
                 tag: 'p',
@@ -63,7 +63,7 @@ fn main() {
             // render the template
             Some(Action {
                 tag: 'p',
-                arg: Some(ref template),
+                arg: Some(template),
             }) => {
                 let ctx: HashMap<String, String> = m
                     .iter_caps()

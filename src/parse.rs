@@ -163,7 +163,10 @@ impl<'a> ParseInput<'a> {
 
     /// Create a span covering the current character.
     pub fn span_char(&self) -> Span {
-        let ch = self.char();
+        let ch = match self.try_char() {
+            Some(ch) => ch,
+            None => return self.span(),
+        };
         let mut end = Position {
             offset: self.offset().checked_add(ch.len_utf8()).unwrap(),
             line: self.line(),
