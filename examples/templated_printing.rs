@@ -9,17 +9,17 @@ const SE: &str = r#"
 x/^impl(?:<.*?>)?.*? (\w+)(?:.|\n)*?^\}/
 v/^impl(?:<.*?>)?.*? for/ {
 
-  p/\nimpl {$1}/;
+  p/\nimpl {1}/;
 
   x/fn(?:.|\n)*?\{/ {
     g/->/ x/fn (\w+)(?:.|\n)*?-> (.*?)\w*\{/ {
-      g/(&?('. ))?mut self/ p/  mut {$1} -> {$2}/;
-      v/(&?('. ))?mut self/ p/      {$1} -> {$2}/;
+      g/(&?('. ))?mut self/ p/  mut {1} -> {2}/;
+      v/(&?('. ))?mut self/ p/      {1} -> {2}/;
     };
 
     v/->/ x/fn (\w+)(?:.|\n)*\{/ {
-      g/(&?('. ))?mut self/ p/  mut {$1} -> ()/;
-      v/(&?('. ))?mut self/ p/      {$1} -> ()/;
+      g/(&?('. ))?mut self/ p/  mut {1} -> ()/;
+      v/(&?('. ))?mut self/ p/      {1} -> ()/;
     };
 
   };
@@ -65,12 +65,7 @@ fn main() {
                 tag: 'p',
                 arg: Some(template),
             }) => {
-                let ctx: HashMap<String, String> = m
-                    .iter_submatches()
-                    .enumerate()
-                    .map(|(i, s)| (format!("${i}"), s.unwrap_or_default().to_string()))
-                    .collect();
-
+                let ctx: HashMap<usize, Option<&str>> = m.iter_submatches().enumerate().collect();
                 println!("{}", tt.render(template, &ctx).unwrap());
             }
 
