@@ -3,11 +3,11 @@ use std::{error, fmt};
 mod ast;
 mod compile;
 mod parse;
-mod re;
+pub mod re;
 mod se;
 
 pub use ast::{ErrorKind, ParseError};
-pub use re::{Captures, RawCaptures, Re};
+pub use re::Captures;
 pub use se::{Action, Match, Matches, Structex, StructexBuilder};
 
 /// An error that occurred during parsing or compiling a strutural regular expression.
@@ -15,8 +15,8 @@ pub use se::{Action, Match, Matches, Structex, StructexBuilder};
 pub enum Error {
     /// A syntax error in the provided structural regular expression.
     Syntax(ParseError),
-    /// An error that occurred during parsing or compiling a regular expression with the given [Re]
-    /// implementation.
+    /// An error that occurred during parsing or compiling a regular expression with the given
+    /// [Re][re::Re] implementation.
     Regex(Box<dyn error::Error>),
 }
 

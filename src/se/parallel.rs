@@ -1,6 +1,6 @@
 use crate::{
-    Re,
     compile::Inst,
+    re::Re,
     se::{Dot, Inner, Match, MatchesInner},
 };
 use std::sync::Arc;
