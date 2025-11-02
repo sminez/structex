@@ -62,8 +62,8 @@ pub trait Re: Sized {
 /// Represents the capture group positions for a single [Re] match only in terms of byte offsets
 /// into the original haystack.
 ///
-/// This is converted into a [Captures] by [Matches][crate::Matches] as matches are returned
-/// during iteration.
+/// This is converted into a [Captures] by [TaggedCapturesIter][crate::TaggedCapturesIter] as
+/// matches are returned during iteration.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RawCaptures {
     pub(crate) caps: Vec<Option<(usize, usize)>>,

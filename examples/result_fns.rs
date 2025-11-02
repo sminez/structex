@@ -18,7 +18,7 @@ fn main() {
 
     // For each match, print out the two capture groups along with the byte offsets of the match
     // position and action (which should always be None).
-    for m in se.iter_matches(haystack) {
+    for m in se.iter_tagged_captures(haystack) {
         let fn_name = m.submatch_text(1).unwrap();
         let ret_ty = m.submatch_text(2).unwrap();
         println!(

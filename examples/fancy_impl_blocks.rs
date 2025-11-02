@@ -48,7 +48,7 @@ fn main() {
     // Match against the ast.rs file from this crate
     let haystack = include_str!("../src/ast.rs");
 
-    for m in se.iter_matches(haystack) {
+    for m in se.iter_tagged_captures(haystack) {
         // If we have no action or no template then just print the full match
         match m.action.as_deref() {
             None

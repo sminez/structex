@@ -8,7 +8,7 @@ mod se;
 
 pub use ast::{ErrorKind, ParseError};
 pub use re::Captures;
-pub use se::{Action, Match, Matches, Structex, StructexBuilder};
+pub use se::{Action, Structex, StructexBuilder, TaggedCaptures, TaggedCapturesIter};
 
 /// An error that occurred during parsing or compiling a strutural regular expression.
 #[derive(Debug)]

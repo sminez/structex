@@ -1,7 +1,7 @@
 use crate::{
     compile::Inst,
     re::Re,
-    se::{Dot, Inner, Match, MatchesInner},
+    se::{Dot, Inner, MatchesInner, TaggedCaptures},
 };
 use std::sync::Arc;
 
@@ -33,7 +33,7 @@ impl<'h, R> Iterator for Iter<'h, R>
 where
     R: Re,
 {
-    type Item = Match<'h>;
+    type Item = TaggedCaptures<'h>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.branches.retain_mut(|b| b.update());
@@ -63,7 +63,7 @@ struct Branch<'h, R>
 where
     R: Re,
 {
-    held: Option<Match<'h>>,
+    held: Option<TaggedCaptures<'h>>,
     it: MatchesInner<'h, R>,
 }
 

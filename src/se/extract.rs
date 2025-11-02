@@ -1,7 +1,7 @@
 use crate::{
     compile::Inst,
     re::{RawCaptures, Re},
-    se::{Dot, Inner, Match, MatchesInner},
+    se::{Dot, Inner, MatchesInner, TaggedCaptures},
 };
 use std::sync::Arc;
 
@@ -99,7 +99,7 @@ impl<'h, R> Iterator for Iter<'h, R>
 where
     R: Re,
 {
-    type Item = Match<'h>;
+    type Item = TaggedCaptures<'h>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
