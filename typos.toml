@@ -21,3 +21,6 @@ extend-ignore-re = [
 
 [files]
 ignore-hidden = true
+extend-exclude = [
+    "tests/raw_data"
+]

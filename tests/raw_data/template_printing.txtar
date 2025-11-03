@@ -1,0 +1,28 @@
+-- name --
+swap word pairs
+-- se --
+x/(\w+) (\w+)/ p/{2} {1}/
+-- haystack --
+This is a test.
+-- matches --
+is This
+test a
+
+-----
+
+-- name --
+extract into parallel with non-overlapping guards
+-- se --
+x/(.|\n)*?\./ {
+  g/Alice/ n/(\w+)\./ p/Last word is "{1}"/;
+  v/Alice/ n/(\w+)/ p/First word is "{1}"/;
+}
+-- haystack --
+This is a multi-line string that mentions peoples names. People like Alice
+and Bob. People like Claire and David, but really we're here to talk about
+Alice. Alice is everyone's friend.
+-- matches --
+First word is "This"
+Last word is "Bob"
+Last word is "Alice"
+Last word is "friend"
