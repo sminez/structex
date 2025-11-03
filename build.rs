@@ -1,10 +1,9 @@
-use std::fs;
-
-const DELIMITER: &str = "\n\n-----\n\n";
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "integration_test")]
     {
+        use std::fs;
+        const DELIMITER: &str = "\n\n-----\n\n";
+
         // Break our test case files into individual files that can be passed to dir_cases
         _ = fs::create_dir("tests/data");
 
