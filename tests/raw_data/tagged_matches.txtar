@@ -1,0 +1,30 @@
+-- name --
+top level extract
+-- se --
+x/\w+/ A
+-- haystack --
+This is a test.
+-- matches --
+A This
+A is
+A a
+A test
+
+-----
+
+-- name --
+extract into parallel with non-overlapping guards
+-- se --
+x/(.|\n)*?\./ {
+  g/Alice/ n/\w+\./ A;
+  v/Alice/ n/\w+/ B;
+}
+-- haystack --
+This is a multi-line string that mentions peoples names. People like Alice
+and Bob. People like Claire and David, but really we're here to talk about
+Alice. Alice is everyone's friend.
+-- matches --
+B This
+A Bob.
+A Alice.
+A friend.
