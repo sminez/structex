@@ -90,3 +90,67 @@ and Bob. People like Claire and David, but really we're here to talk about
 Alice. Alice is everyone's friend.
 -- matches --
 names.
+
+-----
+
+-- name --
+chained narrow
+-- se --
+n/\w.*\./ n/\w+\./ n/\w+/
+-- haystack --
+     this should match foo.
+-- matches --
+foo
+
+-----
+
+-- name --
+chained extract
+-- se --
+x/.+?\./ x/\w+ \w+/ x/\w{2}/
+-- haystack --
+a    b. foo bar. this that.
+-- matches --
+fo
+ba
+th
+is
+th
+at
+
+-----
+
+-- name --
+chained split
+-- se --
+y/\n/ y/:/
+-- haystack --
+foo:bar
+a:b
+1:2
+-- matches --
+foo
+bar
+a
+b
+1
+2
+
+-----
+
+-- name --
+parallel with guards
+-- se --
+x/(.|\n)*?\./ {
+  g/Alice/ n/\w+\./;
+  v/Alice/ n/\w+/;
+}
+-- haystack --
+This is a multi-line string that mentions peoples names. People like Alice
+and Bob. People like Claire and David, but really we're here to talk about
+Alice. Alice is everyone's friend.
+-- matches --
+This
+Bob.
+Alice.
+friend.
