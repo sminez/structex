@@ -129,7 +129,7 @@ wrapped in curly braces and each "branch" is terminated with a semi-colon. It
 is a syntax error to have an empty group or to omit the semi-colon at the end
 of a branch.
 
-An group such as the following would run each expression in parallel over the
+A group such as the following would run each expression in parallel over the
 entire input, interleving matches from each branch as they are found:
 ```text
 {
@@ -141,8 +141,9 @@ entire input, interleving matches from each branch as they are found:
 }
 ```
 
-Running this against our input from before will produce `friend`, as we are
-running over the entire input.
+Running this against our input from before will produce `names`, as we are
+running over the entire input and that is the leftmost-longest match of the
+"narrow" regex `(\w+)\.`.
 
 If we add a group to the end of an expression chain then it runs for each
 match produced by the chain. So, if we add back our "extract" for splitting
@@ -155,7 +156,8 @@ x/(.|\n)*?\./ {
 ```
 
 We'll get `This` (a new match) followed by `Bob`, `Alice` and `friend` that
-we had before.
+we had before, as we are now running our parallel group over each sentence
+individually.
 
 This combination of guards and parallel groups allows us to conditionally
 extract different substrings based on the surrounding structure, but at a
