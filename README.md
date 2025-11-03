@@ -133,10 +133,10 @@ An group such as the following would run each expression in parallel over the
 entire input, interleving matches from each branch as they are found:
 ```text
 {
-  # if the sentence contains "Alice" extract the last word of the sentence
+  # if dot contains "Alice" extract the last word before a '.'
   g/Alice/ n/(\w+)\./;
 
-  # if it doesn't, extract the first word of the sentence instead
+  # if it doesn't, extract the first word of dot instead
   v/Alice/ n/(\w+)/;
 }
 ```
