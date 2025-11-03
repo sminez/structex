@@ -122,15 +122,15 @@ where
                 // Otherwise find the next match
                 match self.next_captures() {
                     Some(caps) => {
-                        self.pos = caps.to();
-
                         if self.ext.on_filter.is_some() && caps.from() > self.pos {
                             self.set_filter(Dot::Range {
-                                from: self.parent.from(),
+                                from: self.pos,
                                 to: caps.from(),
                             });
+                            self.pos = caps.from();
                             self.held = Some(caps);
                         } else {
+                            self.pos = caps.to();
                             self.set_extract(Dot::Captures(caps));
                         }
                     }

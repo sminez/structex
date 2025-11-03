@@ -1,0 +1,92 @@
+-- name --
+top level extract
+-- se --
+x/\w+/
+-- haystack --
+This is a test.
+-- matches --
+This
+is
+a
+test
+
+-----
+
+-- name --
+top level split
+-- se --
+y/ /
+-- haystack --
+This is a test.
+-- matches --
+This
+is
+a
+test.\n
+
+-----
+
+-- name --
+top level narrow
+-- se --
+n/\w+ \w+/
+-- haystack --
+This is a test.
+-- matches --
+This is
+
+-----
+
+-- name --
+extract with guard
+-- se --
+x/(.|\n)*?\./ g/Alice/
+-- haystack --
+This is a multi-line string that mentions peoples names. People like Alice
+and Bob. People like Claire and David, but really we're here to talk about
+Alice. Alice is everyone's friend.
+-- matches --
+ People like Alice\nand Bob.
+ People like Claire and David, but really we're here to talk about\nAlice.
+ Alice is everyone's friend.
+
+-----
+
+-- name --
+extract with guard then narrow
+-- se --
+x/(.|\n)*?\./ g/Alice/ n/\w+\./
+-- haystack --
+This is a multi-line string that mentions peoples names. People like Alice
+and Bob. People like Claire and David, but really we're here to talk about
+Alice. Alice is everyone's friend.
+-- matches --
+Bob.
+Alice.
+friend.
+
+-----
+
+-- name --
+extract with inv guard
+-- se --
+x/(.|\n)*?\./ v/Alice/
+-- haystack --
+This is a multi-line string that mentions peoples names. People like Alice
+and Bob. People like Claire and David, but really we're here to talk about
+Alice. Alice is everyone's friend.
+-- matches --
+This is a multi-line string that mentions peoples names.
+
+-----
+
+-- name --
+extract with inv guard then narrow
+-- se --
+x/(.|\n)*?\./ v/Alice/ n/\w+\./
+-- haystack --
+This is a multi-line string that mentions peoples names. People like Alice
+and Bob. People like Claire and David, but really we're here to talk about
+Alice. Alice is everyone's friend.
+-- matches --
+names.
