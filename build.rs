@@ -1,10 +1,11 @@
-use std::{env, fs};
+use std::fs;
 
 const DELIMITER: &str = "\n\n-----\n\n";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Break our test case files into individual files that can be passed to dir_cases
-    if env::var("PROFILE").unwrap() == "debug" {
+    #[cfg(feature = "integration_test")]
+    {
+        // Break our test case files into individual files that can be passed to dir_cases
         _ = fs::create_dir("tests/data");
 
         for file in fs::read_dir("tests/raw_data")? {

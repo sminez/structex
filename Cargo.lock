@@ -142,6 +142,7 @@ dependencies = [
  "regex",
  "simple_test_case",
  "simple_txtar",
+ "structex",
  "tinytemplate",
 ]
 
