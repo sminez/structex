@@ -21,6 +21,8 @@ pub enum ErrorKind {
     /// The provided top level expression was a single action.
     /// Such an expression would only ever run the action once for all inputs.
     TopLevelAction,
+    /// Comilation options require an action for all matches but none was specified.
+    MissingAction,
     /// An expected delimiter was not found.
     ///
     /// Typically this is encountered when an parallel group or delimited string is missing its
@@ -48,6 +50,7 @@ impl fmt::Display for ErrorKind {
             Self::EmptyGroup => write!(f, "empty group"),
             Self::EmptyGroupBranch => write!(f, "empty group branch"),
             Self::EmptyExpression => write!(f, "empty program"),
+            Self::MissingAction => write!(f, "missing action"),
             Self::MissingDelimiter(ch) => write!(f, "missing delimiter '{ch}'"),
             Self::MultipleBranches => write!(f, "multiple branches when one was expected"),
             Self::TopLevelAction => write!(f, "top level expression can not be an action"),
@@ -137,6 +140,7 @@ pub(super) struct Action {
 #[derive(Debug)]
 pub(super) struct Parser<'i, 'c> {
     input: ParseInput<'i>,
+    require_actions: bool,
     allowed_argless_tags: Option<&'c str>,
     allowed_single_arg_tags: Option<&'c str>,
 }
@@ -145,9 +149,15 @@ impl<'i, 'c> Parser<'i, 'c> {
     pub fn new(prog: &'i str) -> Self {
         Self {
             input: ParseInput::new(prog),
+            require_actions: false,
             allowed_argless_tags: None,
             allowed_single_arg_tags: None,
         }
+    }
+
+    pub fn require_actions(mut self, require_actions: bool) -> Self {
+        self.require_actions = require_actions;
+        self
     }
 
     pub fn with_allowed_argless_tags(mut self, allowed: Option<&'c str>) -> Self {
@@ -263,13 +273,32 @@ impl<'i, 'c> Parser<'i, 'c> {
 
     fn parse1_or_emit_match(&self, in_group: bool) -> Result<Ast, ParseError> {
         if self.input.at_eof() {
-            return Ok(self.emit_match());
+            return if self.require_actions {
+                Err(self.error(ErrorKind::MissingAction))
+            } else {
+                Ok(self.emit_match())
+            };
         }
 
         match self.parse1(in_group) {
             Ok(node) => Ok(node),
-            Err(e) if e.kind == ErrorKind::UnexpectedEof => Ok(self.emit_match()),
-            Err(e) if in_group && e.kind == ErrorKind::UnexpectedChar(';') => Ok(self.emit_match()),
+
+            Err(e) if e.kind == ErrorKind::UnexpectedEof => {
+                if self.require_actions {
+                    Err(self.error(ErrorKind::MissingAction))
+                } else {
+                    Ok(self.emit_match())
+                }
+            }
+
+            Err(e) if in_group && e.kind == ErrorKind::UnexpectedChar(';') => {
+                if self.require_actions {
+                    Err(self.error(ErrorKind::MissingAction))
+                } else {
+                    Ok(self.emit_match())
+                }
+            }
+
             Err(e) => Err(e),
         }
     }

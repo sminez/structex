@@ -32,6 +32,7 @@ pub(crate) struct Compiler {
     pub(crate) re: Vec<String>,
     pub(crate) tags: Vec<char>,
     pub(crate) actions: Vec<Action>,
+    pub(crate) require_actions: bool,
     pub(crate) allowed_argless_tags: Option<String>,
     pub(crate) allowed_single_arg_tags: Option<String>,
 }
@@ -39,6 +40,7 @@ pub(crate) struct Compiler {
 impl Compiler {
     pub(crate) fn compile(&mut self, s: &str) -> Result<Inst, Error> {
         let ast = Parser::new(s)
+            .require_actions(self.require_actions)
             .with_allowed_argless_tags(self.allowed_argless_tags.as_deref())
             .with_allowed_single_arg_tags(self.allowed_single_arg_tags.as_deref())
             .parse()?;

@@ -216,6 +216,7 @@ fn newline_and_tab_string(s: String) -> String {
 pub struct StructexBuilder {
     expr: String,
     action_arg_fn: Arc<dyn ActionArgFn>,
+    require_actions: bool,
     allowed_argless_tags: Option<String>,
     allowed_single_arg_tags: Option<String>,
 }
@@ -229,6 +230,7 @@ impl StructexBuilder {
         Self {
             expr: expr.into(),
             action_arg_fn: Arc::new(newline_and_tab_string),
+            require_actions: false,
             allowed_argless_tags: None,
             allowed_single_arg_tags: None,
         }
@@ -274,6 +276,34 @@ impl StructexBuilder {
         F: Fn(String) -> String + 'static,
     {
         self.action_arg_fn = Arc::new(f);
+        self
+    }
+
+    /// Require all expression chains to end in an [Action].
+    ///
+    /// By default it is permitted to omit specifying an action tag at the end of expression chains
+    /// which will result in simply emitting the match itself. When calling this method such
+    /// branches will result in compilation errors instead.
+    ///
+    /// # Example
+    /// ```
+    /// use structex::{Structex, StructexBuilder};
+    ///
+    /// let expr = "x/.*foo/";
+    ///
+    /// // By default, actions are not required.
+    /// assert!(Structex::<regex::Regex>::new(expr).is_ok());
+    ///
+    /// // If actions are marked as required, the above expression will produce a compilation error.
+    /// assert!(
+    ///     StructexBuilder::new(expr)
+    ///         .require_actions()
+    ///         .build::<regex::Regex>()
+    ///         .is_err()
+    /// );
+    /// ```
+    pub fn require_actions(mut self) -> Self {
+        self.require_actions = true;
         self
     }
 
@@ -340,6 +370,7 @@ impl StructexBuilder {
         R: Re,
     {
         let mut c = Compiler {
+            require_actions: self.require_actions,
             allowed_argless_tags: self.allowed_argless_tags,
             allowed_single_arg_tags: self.allowed_single_arg_tags,
             ..Default::default()
