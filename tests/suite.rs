@@ -29,7 +29,7 @@ fn basic(_path: &str, content: &str) {
     let se: Structex<Regex> = Structex::new(se).unwrap();
     let matches: Vec<String> = se
         .iter_tagged_captures(haystack)
-        .map(|m| m.as_str().to_string())
+        .map(|m| m.as_slice().to_string())
         .collect();
 
     assert_eq!(matches, expected_matches);
@@ -46,7 +46,7 @@ fn tagged_matches(_path: &str, content: &str) {
     let se: Structex<Regex> = Structex::new(se).unwrap();
     let matches: Vec<(char, String)> = se
         .iter_tagged_captures(haystack)
-        .map(|m| (m.tag().unwrap(), m.as_str().to_string()))
+        .map(|m| (m.tag().unwrap(), m.as_slice().to_string()))
         .collect();
 
     assert_eq!(matches, expected_matches);

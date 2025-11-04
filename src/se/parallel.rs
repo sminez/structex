@@ -16,7 +16,12 @@ impl<'h, R> Iter<'h, R>
 where
     R: Re,
 {
-    pub fn new(haystack: &'h str, dot: Dot, branches: &'h [Inst], inner: Arc<Inner<R>>) -> Self {
+    pub fn new(
+        haystack: &'h R::Haystack,
+        dot: Dot,
+        branches: &'h [Inst],
+        inner: Arc<Inner<R>>,
+    ) -> Self {
         let branches = branches
             .iter()
             .flat_map(|inst| {
@@ -33,7 +38,7 @@ impl<'h, R> Iterator for Iter<'h, R>
 where
     R: Re,
 {
-    type Item = TaggedCaptures<'h>;
+    type Item = TaggedCaptures<'h, R>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.branches.retain_mut(|b| b.update());
@@ -63,7 +68,7 @@ struct Branch<'h, R>
 where
     R: Re,
 {
-    held: Option<TaggedCaptures<'h>>,
+    held: Option<TaggedCaptures<'h, R>>,
     it: MatchesInner<'h, R>,
 }
 

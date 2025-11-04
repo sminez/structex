@@ -44,7 +44,7 @@ impl Guard {
 
     pub(super) fn apply<'h, R>(
         &'h self,
-        haystack: &'h str,
+        haystack: &'h R::Haystack,
         dot: Dot,
         inner: Arc<Inner<R>>,
     ) -> Option<MatchesInner<'h, R>>
@@ -52,7 +52,7 @@ impl Guard {
         R: Re,
     {
         let (from, to) = dot.loc();
-        let is_match = inner.re[self.re].matches_between(haystack, from, to);
+        let is_match = inner.re[self.re].is_match_between(haystack, from, to);
         match (
             is_match,
             self.if_matching.as_ref(),

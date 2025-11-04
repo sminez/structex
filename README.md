@@ -84,7 +84,7 @@ full input and then accept a chain of one or more of the following operators:
   - `y/$re/` "split" the current dot using `$re` as the delimiter and iterate
     over the resulting substrings.
   - `n/$re/` "narrow"[^narrow] the current dot to the first match of `$re`
-     within it.
+    within it.
   - `g/$re/` "guard" the rest of the following chain on `$re` matching dot.
   - `v/$re/` "inverse guard" the rest of the following chain on `$re` _not_
     matching dot.

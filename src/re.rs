@@ -1,4 +1,5 @@
 //! The required interface for an underlying regex engine
+use std::fmt;
 
 /// An [Re] is an underlying regular expression engine that can be used to match and extract text
 /// as part of a structural regular expression.
@@ -12,6 +13,15 @@ pub trait Re: Sized {
     /// expression fails. This will be wrapped into an [Error][crate::Error] when returned from
     /// [Structex::compile][crate::Structex::new] or [StructexBuilder::build][crate::StructexBuilder::build].
     type CompileError: std::error::Error + 'static;
+
+    /// The haystack that can be searched by this [Re] using the
+    /// [is_match_between][Re::is_match_between] and [captures_between][Re::captures_between]
+    /// methods.
+    type Haystack: Haystack<Slice = Self::Slice> + ?Sized;
+
+    /// The slice type of the associated [Haystack] that is returned by [Captures] methods when
+    /// extracting matches and submatches.
+    type Slice: ?Sized;
 
     /// Attempt to compile the given regular expression for use inside of a [Structex][crate::Structex].
     ///
@@ -28,34 +38,59 @@ pub trait Re: Sized {
     /// [0]: https://docs.rs/regex/latest/regex/struct.RegexBuilder.html#method.multi_line
     fn compile(re: &str) -> Result<Self, Self::CompileError>;
 
-    /// Returns true if there is a match for the regex anywhere in the given haystack.
+    /// Returns true if there is a match for the regex between the given byte offsets in the haystack.
     ///
     /// This does not need to search for the leftmost-longest match and where possible should be
-    /// faster to run that [Re::captures] which needs to extract the position of the match itself
-    /// and all submatches.
-    fn is_match(&self, haystack: &str) -> bool;
+    /// faster to run that [Re::captures_between] which needs to extract the position of the match
+    /// itself and all submatches.
+    fn is_match_between(&self, haystack: &Self::Haystack, from: usize, to: usize) -> bool;
 
-    /// Searches for the first match of this regex in the given haystack, returning the overall
-    /// match along with the matches of each capture group in the regex. If no match is found, then
-    /// None is returned.
+    /// Searches for the first match of this regex between the given byte offsets in the given
+    /// haystack, returning the overall match along with the matches of each capture group in the
+    /// regex. If no match is found, then None is returned.
     ///
     /// See [RawCaptures::new] for requirements around constructing the return type.
-    fn captures(&self, haystack: &str) -> Option<RawCaptures>;
+    fn captures_between(
+        &self,
+        haystack: &Self::Haystack,
+        from: usize,
+        to: usize,
+    ) -> Option<RawCaptures>;
+}
 
-    /// This method provides the same semantics as [Re::is_match] but restricts the match to be
-    /// between the provided byte offsets within the given haystack.
-    fn matches_between(&self, haystack: &str, from: usize, to: usize) -> bool {
-        self.is_match(&haystack[from..to])
+/// A haystack is an associated type on [Re] that the regular expression engine can be run against.
+///
+/// Typically this is a [str] but some engines may support richer types in order to provide
+/// searching of streams or discontiguous inputs.
+pub trait Haystack: fmt::Debug + PartialEq + Eq + Sync {
+    /// The output of the [slice][Haystack::slice] method.
+    ///
+    /// Typically the same type as the haystack itself but not required to be so.
+    type Slice: Sync + ?Sized;
+
+    /// A contiguous sub-section of the haystack between the given bytes offsets.
+    ///
+    /// The given byte offsets from a half-open interval, inclusive of `from` but omitting `to`.
+    /// This is the same semantics as a normal Rust range `from..to`.
+    fn slice(&self, from: usize, to: usize) -> &Self::Slice;
+
+    /// The maximum length of the full haystack in bytes.
+    ///
+    /// This value will be used as the upper bound to extract slices from this haystack when
+    /// searching for matches. As such, this value must be a valid `to` argument to the
+    /// [slice][Haystack::slice] method.
+    fn max_len(&self) -> usize;
+}
+
+impl Haystack for str {
+    type Slice = str;
+
+    fn slice(&self, from: usize, to: usize) -> &Self::Slice {
+        &self[from..to]
     }
 
-    /// This method provides the same semantics as [Re::captures] but restricts the match to be
-    /// between the provided byte offsets within the given haystack, updating the returned captures
-    /// to provide the correct offsets for each match and submatch position.
-    fn captures_between(&self, haystack: &str, from: usize, to: usize) -> Option<RawCaptures> {
-        let mut caps = self.captures(&haystack[from..to])?;
-        caps.apply_offset(from);
-
-        Some(caps)
+    fn max_len(&self) -> usize {
+        self.len()
     }
 }
 
@@ -81,13 +116,6 @@ impl RawCaptures {
         Self { caps }
     }
 
-    fn apply_offset(&mut self, i: usize) {
-        for cap in self.caps.iter_mut().flatten() {
-            cap.0 += i;
-            cap.1 += i;
-        }
-    }
-
     pub(crate) fn get_match(&self) -> (usize, usize) {
         self.caps[0].unwrap()
     }
@@ -103,18 +131,24 @@ impl RawCaptures {
 
 /// Represents the capture group positions for a single [Re] match in terms of byte offsets into
 /// the original haystack that the match was run against.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Captures<'h> {
-    haystack: &'h str,
+#[derive(Debug, PartialEq, Eq)]
+pub struct Captures<'h, R>
+where
+    R: Re,
+{
+    haystack: &'h R::Haystack,
     caps: Vec<Option<(usize, usize)>>,
 }
 
-impl<'h> Captures<'h> {
-    pub(crate) fn stubbed(caps: Vec<Option<(usize, usize)>>) -> Self {
-        Self { haystack: "", caps }
+impl<'h, R> Captures<'h, R>
+where
+    R: Re,
+{
+    pub(crate) fn new(haystack: &'h R::Haystack, caps: Vec<Option<(usize, usize)>>) -> Self {
+        Self { haystack, caps }
     }
 
-    pub(crate) fn set_haystack(&mut self, haystack: &'h str) {
+    pub(crate) fn set_haystack(&mut self, haystack: &'h R::Haystack) {
         self.haystack = haystack;
     }
 
@@ -155,45 +189,51 @@ impl<'h> Captures<'h> {
     }
 
     /// The full text of the match in the original haystack.
-    pub fn match_text(&self) -> &'h str {
+    pub fn match_text(&self) -> &'h R::Slice {
         let (from, to) = self.get_match();
 
-        &self.haystack[from..to]
+        self.haystack.slice(from, to)
     }
 
     /// The full text of the submatch, if present, in the original haystack.
-    pub fn submatch_text(&self, n: usize) -> Option<&'h str> {
+    pub fn submatch_text(&self, n: usize) -> Option<&'h R::Slice> {
         let (from, to) = self.get(n)?;
 
-        Some(&self.haystack[from..to])
+        Some(self.haystack.slice(from, to))
     }
 
     /// Iterate over all submatches starting with the full match.
-    pub fn iter_submatches(&self) -> impl Iterator<Item = Option<&'h str>> {
+    pub fn iter_submatches(&'h self) -> impl Iterator<Item = Option<&'h R::Slice>> {
         self.caps
             .iter()
-            .map(|cap| cap.map(|(from, to)| &self.haystack[from..to]))
+            .map(|cap| cap.map(|(from, to)| self.haystack.slice(from, to)))
     }
 }
 
 #[cfg(feature = "regex")]
 impl Re for regex::Regex {
     type CompileError = regex::Error;
+    type Haystack = str;
+    type Slice = str;
 
     fn compile(re: &str) -> Result<Self, Self::CompileError> {
         regex::RegexBuilder::new(re).multi_line(true).build()
     }
 
-    fn is_match(&self, haystack: &str) -> bool {
-        self.is_match(haystack)
+    fn is_match_between(&self, haystack: &Self::Haystack, from: usize, to: usize) -> bool {
+        self.is_match(&haystack[from..to])
     }
 
-    fn captures(&self, haystack: &str) -> Option<RawCaptures> {
-        let caps = self.captures(haystack)?;
+    fn captures_between(
+        &self,
+        haystack: &Self::Haystack,
+        from: usize,
+        to: usize,
+    ) -> Option<RawCaptures> {
+        let caps = self.captures(&haystack[from..to])?;
 
-        Some(RawCaptures::new(
-            caps.iter()
-                .map(|cap| cap.map(|cap| (cap.start(), cap.end()))),
-        ))
+        Some(RawCaptures::new(caps.iter().map(|cap| {
+            cap.map(|cap| (cap.start() + from, cap.end() + from))
+        })))
     }
 }

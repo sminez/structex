@@ -14,7 +14,7 @@ pub(crate) struct Narrow {
 impl Narrow {
     pub(super) fn apply<'h, R>(
         &'h self,
-        haystack: &'h str,
+        haystack: &'h R::Haystack,
         dot: Dot,
         inner: Arc<Inner<R>>,
     ) -> Option<MatchesInner<'h, R>>

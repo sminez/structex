@@ -47,7 +47,7 @@ pub(super) struct Iter<'h, R>
 where
     R: Re,
 {
-    haystack: &'h str,
+    haystack: &'h R::Haystack,
     ext: &'h Extract,
     inner: Arc<Inner<R>>,
     /// The original parent dot we are extracting from
@@ -64,7 +64,12 @@ impl<'h, R> Iter<'h, R>
 where
     R: Re,
 {
-    pub fn new(haystack: &'h str, parent: Dot, ext: &'h Extract, inner: Arc<Inner<R>>) -> Self {
+    pub fn new(
+        haystack: &'h R::Haystack,
+        parent: Dot,
+        ext: &'h Extract,
+        inner: Arc<Inner<R>>,
+    ) -> Self {
         let pos = parent.from();
 
         Self {
@@ -99,7 +104,7 @@ impl<'h, R> Iterator for Iter<'h, R>
 where
     R: Re,
 {
-    type Item = TaggedCaptures<'h>;
+    type Item = TaggedCaptures<'h, R>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

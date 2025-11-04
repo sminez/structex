@@ -3,7 +3,7 @@
 use crate::{
     Error,
     compile::{Compiler, Inst},
-    re::{Captures, RawCaptures, Re},
+    re::{Captures, Haystack, RawCaptures, Re},
 };
 use std::{fmt, ops::Deref, sync::Arc};
 
@@ -189,7 +189,10 @@ where
     ///     &[('B', "This"), ('A', "Bob"), ('A', "Alice"), ('A', "friend")]
     /// );
     /// ```
-    pub fn iter_tagged_captures<'h>(&'h self, haystack: &'h str) -> TaggedCapturesIter<'h, R> {
+    pub fn iter_tagged_captures<'h>(
+        &'h self,
+        haystack: &'h R::Haystack,
+    ) -> TaggedCapturesIter<'h, R> {
         TaggedCapturesIter::new(&self.inner.inst, self.inner.clone(), haystack)
     }
 }
@@ -408,10 +411,13 @@ impl Dot {
         }
     }
 
-    fn into_stubbed_captures<'h>(self) -> Captures<'h> {
+    fn into_captures<'h, R>(self, haystack: &'h R::Haystack) -> Captures<'h, R>
+    where
+        R: Re,
+    {
         match self {
-            Self::Range { from, to } => Captures::stubbed(vec![Some((from, to))]),
-            Self::Captures(c) => Captures::stubbed(c.caps),
+            Self::Range { from, to } => Captures::new(haystack, vec![Some((from, to))]),
+            Self::Captures(c) => Captures::new(haystack, c.caps),
         }
     }
 }
@@ -420,18 +426,24 @@ impl Dot {
 ///
 /// If an action was specified at the match point in the original [Structex] then `action` will
 /// contain that action, otherwise it will be `None`.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TaggedCaptures<'h> {
+#[derive(Debug, PartialEq, Eq)]
+pub struct TaggedCaptures<'h, R>
+where
+    R: Re,
+{
     /// The match and any captures extracted from it.
-    pub captures: Captures<'h>,
+    pub captures: Captures<'h, R>,
     /// An optional [Action] assigned by the match if one was specified in the [Structex]
     /// expression.
     pub action: Option<Arc<Action>>,
 }
 
-impl<'h> TaggedCaptures<'h> {
-    /// Returns the substring of the haystack that matched.
-    pub fn as_str(&self) -> &str {
+impl<'h, R> TaggedCaptures<'h, R>
+where
+    R: Re,
+{
+    /// Returns the [slice][Re::Slice] of the haystack that matched.
+    pub fn as_slice(&self) -> &R::Slice {
         self.captures.match_text()
     }
 
@@ -452,8 +464,11 @@ impl<'h> TaggedCaptures<'h> {
     }
 }
 
-impl<'h> Deref for TaggedCaptures<'h> {
-    type Target = Captures<'h>;
+impl<'h, R> Deref for TaggedCaptures<'h, R>
+where
+    R: Re,
+{
+    type Target = Captures<'h, R>;
 
     fn deref(&self) -> &Self::Target {
         &self.captures
@@ -479,7 +494,7 @@ pub struct TaggedCapturesIter<'h, R>
 where
     R: Re,
 {
-    haystack: &'h str,
+    haystack: &'h R::Haystack,
     inner: Option<MatchesInner<'h, R>>,
 }
 
@@ -487,7 +502,7 @@ impl<'h, R> TaggedCapturesIter<'h, R>
 where
     R: Re,
 {
-    fn new(inst: &'h Inst, inner: Arc<Inner<R>>, haystack: &'h str) -> Self {
+    fn new(inst: &'h Inst, inner: Arc<Inner<R>>, haystack: &'h R::Haystack) -> Self {
         Self {
             haystack,
             inner: MatchesInner::new(
@@ -496,7 +511,7 @@ where
                 haystack,
                 Dot::Range {
                     from: 0,
-                    to: haystack.len(),
+                    to: haystack.max_len(),
                 },
             ),
         }
@@ -507,7 +522,7 @@ impl<'h, R> Iterator for TaggedCapturesIter<'h, R>
 where
     R: Re,
 {
-    type Item = TaggedCaptures<'h>;
+    type Item = TaggedCaptures<'h, R>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.as_mut().and_then(|inner| {
@@ -525,22 +540,27 @@ where
 {
     Extract(extract::Iter<'h, R>),
     Parallel(parallel::Iter<'h, R>),
-    Emit(Option<TaggedCaptures<'h>>),
+    Emit(Option<TaggedCaptures<'h, R>>),
 }
 
 impl<'h, R> MatchesInner<'h, R>
 where
     R: Re,
 {
-    fn new(inst: &'h Inst, inner: Arc<Inner<R>>, haystack: &'h str, dot: Dot) -> Option<Self> {
+    fn new(
+        inst: &'h Inst,
+        inner: Arc<Inner<R>>,
+        haystack: &'h R::Haystack,
+        dot: Dot,
+    ) -> Option<Self> {
         match inst {
             // EmitMatch and Action just emit their value
             Inst::EmitMatch => Some(Self::Emit(Some(TaggedCaptures {
-                captures: dot.into_stubbed_captures(),
+                captures: dot.into_captures(haystack),
                 action: None,
             }))),
             Inst::Action(i) => Some(Self::Emit(Some(TaggedCaptures {
-                captures: dot.into_stubbed_captures(),
+                captures: dot.into_captures(haystack),
                 action: Some(inner.actions[*i].clone()),
             }))),
 
@@ -563,7 +583,7 @@ impl<'h, R> Iterator for MatchesInner<'h, R>
 where
     R: Re,
 {
-    type Item = TaggedCaptures<'h>;
+    type Item = TaggedCaptures<'h, R>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
