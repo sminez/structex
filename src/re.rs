@@ -148,10 +148,6 @@ where
         Self { haystack, caps }
     }
 
-    pub(crate) fn set_haystack(&mut self, haystack: &'h R::Haystack) {
-        self.haystack = haystack;
-    }
-
     /// The byte offset that this match starts at.
     pub fn from(&self) -> usize {
         self.get_match().0

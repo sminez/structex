@@ -494,7 +494,6 @@ pub struct TaggedCapturesIter<'h, R>
 where
     R: Re,
 {
-    haystack: &'h R::Haystack,
     inner: Option<MatchesInner<'h, R>>,
 }
 
@@ -504,7 +503,6 @@ where
 {
     fn new(inst: &'h Inst, inner: Arc<Inner<R>>, haystack: &'h R::Haystack) -> Self {
         Self {
-            haystack,
             inner: MatchesInner::new(
                 inst,
                 inner,
@@ -525,12 +523,7 @@ where
     type Item = TaggedCaptures<'h, R>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.as_mut().and_then(|inner| {
-            inner.next().map(|mut m| {
-                m.captures.set_haystack(self.haystack);
-                m
-            })
-        })
+        self.inner.as_mut().and_then(|inner| inner.next())
     }
 }
 
