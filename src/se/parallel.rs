@@ -50,11 +50,14 @@ where
                 let mut next = self.branches[0].get_match().unwrap();
                 let mut ix = 0;
 
+                // Matches coming from a parallel group are yielded in order of their position
+                // within the haystack. Shorter matches starting from the same offset are yielded
+                // first and in the case of equal offsets we order based on branch ordering.
                 for (i, b) in self.branches[1..].iter().enumerate() {
                     let m = b.get_match().unwrap();
                     if m < next {
                         next = m;
-                        ix = i;
+                        ix = i + 1; // enumerate is one off
                     }
                 }
 

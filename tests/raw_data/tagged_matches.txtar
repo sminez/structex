@@ -28,3 +28,39 @@ B This
 A Bob.
 A Alice.
 A friend.
+
+-----
+
+-- name --
+parallel with same from yields shortest match first
+-- se --
+x/\w+/ {
+  n/.../ B;
+  n/../  A;
+}
+-- haystack --
+foo bar
+-- matches --
+A fo
+B foo
+A ba
+B bar
+
+-----
+
+-- name --
+parallel with the same match positions yields in branch order
+-- se --
+x/\w+/ {
+  n/^..$/  A;
+  n/^...$/ B;
+  n/^..$/  C;
+  n/^...$/ D;
+}
+-- haystack --
+foo me
+-- matches --
+B foo
+D foo
+A me
+C me
