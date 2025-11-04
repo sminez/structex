@@ -30,7 +30,7 @@ found within the compiled expression.</p>
 
 <span class="macro">assert_eq!</span>(se.actions()[<span class="number">0</span>].arg.as_deref(), <span class="prelude-val">Some</span>(<span class="string">"FOUND FOO"</span>));</code></pre></div>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.require_actions" class="method"><a class="src rightside" href="../src/structex/se/mod.rs.html#305-308">Source</a><h4 class="code-header">pub fn <a href="#method.require_actions" class="fn">require_actions</a>(self) -&gt; Self</h4></section></summary><div class="docblock"><p>Require all expression chains to end in an <a href="struct.Action.html" title="struct structex::Action">Action</a>.</p>
-<p>By default it is permitted to omit specifing an action tag at the end of expression chains
+<p>By default it is permitted to omit specifying an action tag at the end of expression chains
 which will result in simply emitting the match itself. When calling this method such
 branches will result in compilation errors instead.</p>
 <h5 id="example-2"><a class="doc-anchor" href="#example-2">§</a>Example</h5>
