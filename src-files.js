@@ -1,2 +1,2 @@
-createSrcSidebar('[["structex",["",[["se",[],["extract.rs","guard.rs","mod.rs","narrow.rs","parallel.rs"]]],["ast.rs","compile.rs","lib.rs","parse.rs","re.rs"]]]]');
-//{"start":19,"fragment_lengths":[142]}
+createSrcSidebar('[["structex",["",[["se",[],["extract.rs","guard.rs","mod.rs","narrow.rs","parallel.rs"]]],["ast.rs","compile.rs","lib.rs","parse.rs","re.rs","template.rs"]]]]');
+//{"start":19,"fragment_lengths":[156]}
