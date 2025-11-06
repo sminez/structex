@@ -1,5 +1,5 @@
 //! The required interface for an underlying regex engine
-use std::fmt;
+use std::{fmt, io};
 
 /// An [Re] is an underlying regular expression engine that can be used to match and extract text
 /// as part of a structural regular expression.
@@ -21,7 +21,7 @@ pub trait Re: Sized {
 
     /// The slice type of the associated [Haystack] that is returned by [Captures] methods when
     /// extracting matches and submatches.
-    type Slice: ?Sized;
+    type Slice: Writable + ?Sized;
 
     /// Attempt to compile the given regular expression for use inside of a [Structex][crate::Structex].
     ///
@@ -62,11 +62,11 @@ pub trait Re: Sized {
 ///
 /// Typically this is a [str] but some engines may support richer types in order to provide
 /// searching of streams or discontiguous inputs.
-pub trait Haystack: fmt::Debug + PartialEq + Eq + Sync {
+pub trait Haystack: Writable + fmt::Debug + PartialEq + Eq + Sync {
     /// The output of the [slice][Haystack::slice] method.
     ///
     /// Typically the same type as the haystack itself but not required to be so.
-    type Slice: Sync + ?Sized;
+    type Slice: Writable + Sync + ?Sized;
 
     /// A contiguous sub-section of the haystack between the given bytes offsets.
     ///
@@ -82,6 +82,12 @@ pub trait Haystack: fmt::Debug + PartialEq + Eq + Sync {
     fn max_len(&self) -> usize;
 }
 
+pub trait Writable {
+    fn write_to<W>(&self, w: &mut W) -> io::Result<usize>
+    where
+        W: io::Write;
+}
+
 impl Haystack for str {
     type Slice = str;
 
@@ -91,6 +97,15 @@ impl Haystack for str {
 
     fn max_len(&self) -> usize {
         self.len()
+    }
+}
+
+impl Writable for str {
+    fn write_to<W>(&self, w: &mut W) -> io::Result<usize>
+    where
+        W: io::Write,
+    {
+        w.write_all(self.as_bytes()).map(|_| self.len())
     }
 }
 

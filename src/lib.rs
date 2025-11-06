@@ -6,6 +6,7 @@ mod compile;
 mod parse;
 pub mod re;
 mod se;
+pub mod template;
 
 pub use ast::{ErrorKind, ParseError};
 pub use re::Captures;
