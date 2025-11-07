@@ -1,9 +1,7 @@
-//! An example of how to use a Structex alongside the tinytemplate crate to support simple string
-//! templating for a 'p' print action.
+//! An example of how to use a Structex with this crate's minimal templating support to create
+//! a simple 'p' print action.
 use regex::Regex;
-use std::collections::HashMap;
-use structex::{Structex, StructexBuilder};
-use tinytemplate::TinyTemplate;
+use structex::{Structex, StructexBuilder, template::Template};
 
 // This is a much more complicated, compound expression. It is searching for Rust "impl" blocks
 // within a file, filtering out those that look like a trait implementation ("impl X for Y") before
@@ -47,25 +45,22 @@ fn main() {
         .build()
         .unwrap();
 
-    // Create a new template registry and register each print template that was located by the
-    // Structex during compilation.
-    let mut tt = TinyTemplate::new();
-    tt.set_default_formatter(&tinytemplate::format_unescaped);
+    let mut templates = Vec::new();
 
     for action in se.actions() {
-        if let Some(template) = action.arg.as_ref() {
-            tt.add_template(template, template).unwrap();
+        if let Some(template) = action.arg() {
+            templates.push(Template::parse(template).unwrap());
         }
     }
 
     // Match against the ast.rs file from this crate
     let haystack = include_str!("../src/ast.rs");
 
-    for m in se.iter_tagged_captures(haystack) {
+    for caps in se.iter_tagged_captures(haystack) {
         // We know we only have 'p' actions with an argument from the compilation config we set
-        // above, so we can safely unwrap the match argument for use as our template.
-        let template = m.arg().unwrap();
-        let ctx: HashMap<usize, Option<&str>> = m.iter_submatches().enumerate().collect();
-        println!("{}", tt.render(template, &ctx).unwrap());
+        // above, so we know that each captures has an action and that the action ID is a valid
+        // index into our vec of templates.
+        let id = caps.id().unwrap();
+        println!("{}", templates[id].render(&caps).unwrap());
     }
 }

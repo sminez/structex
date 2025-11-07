@@ -106,8 +106,14 @@ where
     /// let actions = se.actions();
     ///
     /// assert_eq!(actions.len(), 2);
-    /// assert_eq!(actions[0].as_ref(), &Action { tag: 'p', arg: None });
-    /// assert_eq!(actions[1].as_ref(), &Action { tag: 'a', arg: Some("baz".to_string()) });
+    ///
+    /// assert_eq!(actions[0].id(), 0);
+    /// assert_eq!(actions[0].tag(), 'p');
+    /// assert_eq!(actions[0].arg(), None);
+    ///
+    /// assert_eq!(actions[1].id(), 1);
+    /// assert_eq!(actions[1].tag(), 'a');
+    /// assert_eq!(actions[1].arg(), Some("baz"));
     /// ```
     pub fn actions(&self) -> &[Arc<Action>] {
         &self.inner.actions
@@ -249,7 +255,7 @@ impl StructexBuilder {
     ///     .build()
     ///     .unwrap();
     ///
-    /// assert_eq!(se.actions()[0].arg.as_deref(), Some("\nfound foo\t"));
+    /// assert_eq!(se.actions()[0].arg(), Some("\nfound foo\t"));
     /// ```
     pub fn raw_arg_strings(mut self) -> Self {
         self.action_arg_fn = Arc::new(raw_arg_string);
@@ -269,7 +275,7 @@ impl StructexBuilder {
     ///     .build()
     ///     .unwrap();
     ///
-    /// assert_eq!(se.actions()[0].arg.as_deref(), Some("FOUND FOO"));
+    /// assert_eq!(se.actions()[0].arg(), Some("FOUND FOO"));
     /// ```
     pub fn action_argument_fn<F>(mut self, f: F) -> Self
     where
@@ -381,10 +387,14 @@ impl StructexBuilder {
             re, tags, actions, ..
         } = c;
 
+        // Apply the arg mapping function if one was provided and set each action's ID
         let actions: Vec<_> = actions
             .into_iter()
-            .map(|mut a| {
+            .enumerate()
+            .map(|(id, mut a)| {
                 a.arg = a.arg.take().map(|s| (self.action_arg_fn)(s));
+                a.id = id;
+
                 Arc::new(a)
             })
             .collect();
@@ -478,6 +488,11 @@ where
         self.captures.match_text()
     }
 
+    /// Returns the action id that was associated with the match if one was specified.
+    pub fn id(&self) -> Option<usize> {
+        self.action.as_ref().map(|a| a.id)
+    }
+
     /// Returns the action tag that was associated with the match if one was specified.
     pub fn tag(&self) -> Option<char> {
         self.action.as_ref().map(|a| a.tag)
@@ -509,10 +524,30 @@ where
 /// A tag with optional argument attached to a match position as part of a [Structex].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Action {
-    /// The tag character that was specified.
-    pub tag: char,
-    /// The contents of the slash delimited string following the tag (if specified).
-    pub arg: Option<String>,
+    id: usize,
+    tag: char,
+    arg: Option<String>,
+}
+
+impl Action {
+    pub(crate) fn new(tag: char, arg: Option<String>) -> Self {
+        Self { id: 0, tag, arg }
+    }
+
+    /// The unique ID for this action within the parent [Structex].
+    pub fn id(&self) -> usize {
+        self.id
+    }
+
+    /// The tag character that was specified for this Action.
+    pub fn tag(&self) -> char {
+        self.tag
+    }
+
+    /// The contents of the slash delimited string following the tag of this action, if specified.
+    pub fn arg(&self) -> Option<&str> {
+        self.arg.as_deref()
+    }
 }
 
 /// An iterator over all matches in a haystack.

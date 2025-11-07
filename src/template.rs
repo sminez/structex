@@ -60,6 +60,50 @@
 //! the parsed [Actions][crate::Action] returned by a [Structex][crate::Structex] instance and then
 //! perform your rendering based on the matches that are yielded from
 //! [Structex::iter_tagged_captures][crate::Structex::iter_tagged_captures].
+//!
+//! ```
+//! use structex::{Structex, template::Template};
+//! use regex::Regex;
+//!
+//! let haystack = r#"This is a multi-line
+//! string that mentions peoples names.
+//! People like Alice and Bob. People
+//! like Claire and David, but really
+//! we're here to talk about Alice.
+//! Alice is everyone's friend."#;
+//!
+//! let se: Structex<Regex> = Structex::new(r#"
+//!   x/(.|\n)*?\./ {
+//!     g/Alice/ n/(\w+)\./ p/The last word is '{1}'/;
+//!     v/Alice/ n/(\w+)/   p/The first word is '{1}'/;
+//!   }
+//! "#).unwrap();
+//!
+//! // Parse and register the templates
+//! let templates: Vec<Template> = se
+//!     .actions()
+//!     .iter()
+//!     .map(|action| Template::parse(action.arg().unwrap()).unwrap())
+//!     .collect();
+//!
+//! let output: Vec<String> = se
+//!     .iter_tagged_captures(haystack)
+//!     .map(|caps| {
+//!         let id = caps.id().unwrap();
+//!         templates[id].render(&caps).unwrap()
+//!     })
+//!     .collect();
+//!
+//! assert_eq!(
+//!     &output,
+//!     &[
+//!         "The first word is 'This'",
+//!         "The last word is 'Bob'",
+//!         "The last word is 'Alice'",
+//!         "The last word is 'friend'",
+//!     ]
+//! );
+//! ```
 use crate::{
     parse::{self, ParseInput},
     re::{Re, Writable},

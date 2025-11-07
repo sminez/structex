@@ -170,7 +170,7 @@ impl Compiler {
         match action.tag {
             Some(tag) => {
                 self.push_tag(tag);
-                let action = self.push_action(Action { tag, arg: action.s });
+                let action = self.push_action(Action::new(tag, action.s));
 
                 Inst::Action(action)
             }

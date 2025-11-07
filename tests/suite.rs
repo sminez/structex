@@ -1,9 +1,7 @@
 use regex::Regex;
 use simple_test_case::dir_cases;
 use simple_txtar::Archive;
-use std::collections::HashMap;
-use structex::{Structex, StructexBuilder};
-use tinytemplate::TinyTemplate;
+use structex::{Structex, StructexBuilder, template::Template};
 
 fn parse_case<T>(arr: &Archive, f: impl Fn(String) -> T) -> (&str, &str, Vec<T>) {
     let se = &arr.get("se").unwrap().content;
@@ -64,20 +62,18 @@ fn template_printing(_path: &str, content: &str) {
         .unwrap();
 
     // Parse and register the templates
-    let mut tt = TinyTemplate::new();
-    tt.set_default_formatter(&tinytemplate::format_unescaped);
+    let mut templates = Vec::new();
     for action in se.actions() {
-        if let Some(template) = action.arg.as_ref() {
-            tt.add_template(template, template).unwrap();
+        if let Some(template) = action.arg() {
+            templates.push(Template::parse(template).unwrap());
         }
     }
 
     let output: Vec<String> = se
         .iter_tagged_captures(haystack)
-        .map(|m| {
-            let template = m.arg().unwrap();
-            let ctx: HashMap<usize, Option<&str>> = m.iter_submatches().enumerate().collect();
-            tt.render(template, &ctx).unwrap()
+        .map(|caps| {
+            let id = caps.id().unwrap();
+            templates[id].render(&caps).unwrap()
         })
         .collect();
 
