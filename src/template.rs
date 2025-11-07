@@ -1,4 +1,65 @@
-//! Simple template parsing and rendering
+//! Simple template parsing and rendering for use in actions.
+//!
+//! This module provides a simple [Template] type that can be parsed from the argument string of a
+//! given [Action][crate::Action] and used for rendering string content based on submatches
+//! extracted by a [Structex][crate::Structex].
+//!
+//! # Syntax
+//! The syntax supported for templating is extremely minimal and focuses solely on injecting
+//! submatches into a user provided template. In its simplest form a template is simply a string
+//! literal, but the syntax also supports referencing submatches by their index. To inject the
+//! contents of a submatch at a particular point within a template, place the capture index inside
+//! of curly braces: `"submatch 1 is {1} and submatch 2 is {2}"`.
+//!
+//! ## Syntax Errors
+//! It is an error to have an unclosed `{}` pair within a template or to place something other than
+//! a capture index inside of curly braces. To escape a curly brace, place a `\` before the opening
+//! brace. Closing braces do not need to be escaped.
+//!
+//! ```
+//! use structex::template::Template;
+//!
+//! // The following are all valid templates
+//!
+//! // String literals with no references are allowed
+//! assert!(Template::parse("hello, world!").is_ok());
+//!
+//! // Raw strings with `\n` and `\t` escape sequences
+//! assert!(Template::parse(r#"hello,\tworld!\n"#).is_ok());
+//!
+//! // Escaping `{` requires `\\` to provide a literal backslash
+//! assert!(Template::parse("\\{ 1, 2, 3 }").is_ok());
+//!
+//! // Using a raw string is easier
+//! assert!(Template::parse(r#"\{ "hello", "world!" }"#).is_ok());
+//!
+//! // A single reference
+//! assert!(Template::parse("hello, {1}!").is_ok());
+//!
+//! // Multiple references
+//! assert!(Template::parse("{2}, {1}!").is_ok());
+//!
+//! // The same reference multiple times
+//! assert!(Template::parse("{1}, {1}!").is_ok());
+//!
+//!
+//! // The following are all invalid templates
+//!
+//! // An unclosed capture reference
+//! assert!(Template::parse("{1").is_err());
+//!
+//! // An unknown escape sequence
+//! assert!(Template::parse("\\[").is_err());
+//!
+//! // Something other than a capture index as a reference
+//! assert!(Template::parse("{foo}").is_err());
+//! ```
+//!
+//! # Usage
+//! To make use of [Templates][Template] with the rest of this crate, construct your templates from
+//! the parsed [Actions][crate::Action] returned by a [Structex][crate::Structex] instance and then
+//! perform your rendering based on the matches that are yielded from
+//! [Structex::iter_tagged_captures][crate::Structex::iter_tagged_captures].
 use crate::{
     parse::{self, ParseInput},
     re::{Re, Writable},
@@ -7,10 +68,16 @@ use crate::{
 use std::{
     fmt,
     io::{self, Write},
+    sync::Arc,
 };
 
+/// An error that can arise during template parsing.
 pub type Error = parse::Error<ErrorKind>;
 
+/// A list specifying the different categories of errors that can be encountered while parsing a
+/// template.
+///
+/// It is used with the [template::Error][Error] type.
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum ErrorKind {
@@ -45,14 +112,21 @@ enum Fragment {
     Lit(usize, usize),
 }
 
+/// A parsed string template that can be rendered for a given [TaggedCaptures].
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Template<'a> {
-    raw: &'a str,
+pub struct Template {
+    raw: Arc<str>,
     fragments: Vec<Fragment>,
 }
 
-impl<'a> Template<'a> {
-    pub fn parse(template: &'a str) -> Result<Self, Error> {
+impl Template {
+    /// Parses a new [Template] from the given string.
+    ///
+    /// Errors if the template contains unknown escape sequences or an invalid variable reference.
+    ///
+    /// See the [module][crate::template] documentation for usage and examples of the supported
+    /// syntax.
+    pub fn parse(template: &str) -> Result<Self, Error> {
         let input = ParseInput::new(template);
         let mut fragments = Vec::new();
         let mut offset = input.offset();
@@ -113,11 +187,32 @@ impl<'a> Template<'a> {
         push_lit(offset, &input, &mut fragments);
 
         Ok(Template {
-            raw: template,
+            raw: Arc::from(template),
             fragments,
         })
     }
 
+    /// Render this template directly to a newly created [String] using the given [TaggedCaptures].
+    ///
+    /// Returns an error if any of the underlying write calls fail.
+    ///
+    /// To render to an arbitrary writer instead of a string, see the
+    /// [render_to][Template::render_to] method.
+    pub fn render<R>(&self, caps: &TaggedCaptures<'_, R>) -> io::Result<String>
+    where
+        R: Re,
+    {
+        let mut buf = Vec::with_capacity(self.raw.len() * 2);
+        self.render_to(&mut buf, caps)?;
+
+        Ok(String::from_utf8(buf).unwrap())
+    }
+
+    /// Render this template to the provided writer using the given [TaggedCaptures].
+    ///
+    /// Returns an error if any of the underlying write calls fail.
+    ///
+    /// To render directly to a [String], see the [render][Template::render] method.
     pub fn render_to<R, W>(&self, w: &mut W, caps: &TaggedCaptures<'_, R>) -> io::Result<usize>
     where
         R: Re,
@@ -142,23 +237,12 @@ impl<'a> Template<'a> {
 
         Ok(n)
     }
-
-    pub fn render<R>(&self, caps: &TaggedCaptures<'_, R>) -> io::Result<String>
-    where
-        R: Re,
-    {
-        let mut buf = Vec::with_capacity(self.raw.len() * 2);
-        self.render_to(&mut buf, caps)?;
-
-        Ok(String::from_utf8(buf).unwrap())
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::Captures;
-
     use super::*;
+    use crate::Captures;
     use simple_test_case::test_case;
 
     #[derive(Debug, PartialEq, Eq)]
@@ -170,7 +254,7 @@ mod tests {
 
     use Tag::*;
 
-    fn tags<'a>(t: &Template<'a>) -> Vec<Tag<'a>> {
+    fn tags(t: &Template) -> Vec<Tag<'_>> {
         t.fragments
             .iter()
             .map(|f| match f {
