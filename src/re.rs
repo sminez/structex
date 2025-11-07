@@ -82,7 +82,9 @@ pub trait Haystack: Writable + fmt::Debug + PartialEq + Eq + Sync {
     fn max_len(&self) -> usize;
 }
 
+/// Something that can be written to to a given [io::Write].
 pub trait Writable {
+    /// Writes `self` to the given [io::Write], returning the number of bytes written.
     fn write_to<W>(&self, w: &mut W) -> io::Result<usize>
     where
         W: io::Write;
@@ -106,6 +108,69 @@ impl Writable for str {
         W: io::Write,
     {
         w.write_all(self.as_bytes()).map(|_| self.len())
+    }
+}
+
+impl Haystack for String {
+    type Slice = str;
+
+    fn slice(&self, from: usize, to: usize) -> &Self::Slice {
+        &self[from..to]
+    }
+
+    fn max_len(&self) -> usize {
+        self.len()
+    }
+}
+
+impl Writable for String {
+    fn write_to<W>(&self, w: &mut W) -> io::Result<usize>
+    where
+        W: io::Write,
+    {
+        w.write_all(self.as_bytes()).map(|_| self.len())
+    }
+}
+
+impl Haystack for [u8] {
+    type Slice = [u8];
+
+    fn slice(&self, from: usize, to: usize) -> &Self::Slice {
+        &self[from..to]
+    }
+
+    fn max_len(&self) -> usize {
+        self.len()
+    }
+}
+
+impl Writable for [u8] {
+    fn write_to<W>(&self, w: &mut W) -> io::Result<usize>
+    where
+        W: io::Write,
+    {
+        w.write_all(self).map(|_| self.len())
+    }
+}
+
+impl Haystack for Vec<u8> {
+    type Slice = [u8];
+
+    fn slice(&self, from: usize, to: usize) -> &Self::Slice {
+        &self[from..to]
+    }
+
+    fn max_len(&self) -> usize {
+        self.len()
+    }
+}
+
+impl Writable for Vec<u8> {
+    fn write_to<W>(&self, w: &mut W) -> io::Result<usize>
+    where
+        W: io::Write,
+    {
+        w.write_all(self).map(|_| self.len())
     }
 }
 
