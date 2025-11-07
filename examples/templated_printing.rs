@@ -45,13 +45,11 @@ fn main() {
         .build()
         .unwrap();
 
-    let mut templates = Vec::new();
-
-    for action in se.actions() {
-        if let Some(template) = action.arg() {
-            templates.push(Template::parse(template).unwrap());
-        }
-    }
+    let templates: Vec<Template> = se
+        .actions()
+        .iter()
+        .map(|action| Template::parse(action.arg().unwrap()).unwrap())
+        .collect();
 
     // Match against the ast.rs file from this crate
     let haystack = include_str!("../src/ast.rs");
