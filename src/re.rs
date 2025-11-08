@@ -1,17 +1,18 @@
 //! The required interface for an underlying regex engine
-use std::{fmt, io};
+use std::{fmt, io, ops::Range};
 
-/// An [Re] is an underlying regular expression engine that can be used to match and extract text
-/// as part of a structural regular expression.
+/// A [RegexEngine] is an underlying regular expression engine that can be used to match and
+/// extract text as part of a structural regular expression.
 ///
 /// The interface provided by this trait is intended for use by [Structex][crate::Structex] as an
 /// internal implementation detail and is likely not particularly useful outside of this crate.
 /// Implementors of this trait should pay particular attention to the requirements around
 /// compilation in order for the resulting regex expressions to be compatible with this crate.
-pub trait Re: Sized {
-    /// Error type that is returned by the [Re::compile] method when compilation of a given regular
-    /// expression fails. This will be wrapped into an [Error][crate::Error] when returned from
-    /// [Structex::compile][crate::Structex::new] or [StructexBuilder::build][crate::StructexBuilder::build].
+pub trait RegexEngine: Sized {
+    /// Error type that is returned by the [RegexEngine::compile] method when compilation of a
+    /// given regular expression fails. This will be wrapped into an [Error][crate::Error] when
+    /// returned from [Structex::compile][crate::Structex::new] or
+    /// [StructexBuilder::build][crate::StructexBuilder::build].
     type CompileError: std::error::Error + 'static;
 
     /// Attempt to compile the given regular expression for use inside of a [Structex][crate::Structex].
@@ -30,13 +31,13 @@ pub trait Re: Sized {
     fn compile(re: &str) -> Result<Self, Self::CompileError>;
 }
 
-/// A haystack that can be searched by an [Re] regular expression engine.
+/// A haystack that can be searched by a [RegexEngine].
 ///
 /// Typically this is a [&str] but some engines may support richer types in order to provide
 /// searching of streams or discontiguous inputs.
 pub trait Haystack<R>: Sliceable
 where
-    R: Re,
+    R: RegexEngine,
 {
     /// Returns true if there is a match for the regex between the given byte offsets in the haystack.
     ///
@@ -60,16 +61,14 @@ pub trait Sliceable: Writable + fmt::Debug + PartialEq + Eq + Copy {
     where
         Self: 'h;
 
-    /// A contiguous sub-section between the given bytes offsets.
-    ///
-    /// The given byte offsets from a half-open interval, inclusive of `from` but omitting `to`.
-    /// This is the same semantics as a normal Rust range `from..to`.
-    fn slice<'h>(&'h self, from: usize, to: usize) -> Self::Slice<'h>;
+    /// The contiguous sub-section of self that is denoted by the given byte [Range].
+    fn slice<'h>(&'h self, range: Range<usize>) -> Self::Slice<'h>;
 
     /// The maximum length in bytes.
     ///
     /// This value will be used as the upper bound to extract slices when searching for matches. As
-    /// such, this value must be a valid `to` argument to the [slice][Sliceable::slice] method.
+    /// such, this value must be a valid end to the `range` argument to the
+    /// [slice][Sliceable::slice] method.
     fn max_len(&self) -> usize;
 }
 
@@ -87,8 +86,8 @@ impl Sliceable for &str {
     where
         Self: 'h;
 
-    fn slice(&self, from: usize, to: usize) -> &str {
-        &self[from..to]
+    fn slice(&self, range: Range<usize>) -> &str {
+        &self[range]
     }
 
     fn max_len(&self) -> usize {
@@ -111,8 +110,8 @@ impl Sliceable for &[u8] {
     where
         Self: 'h;
 
-    fn slice(&self, from: usize, to: usize) -> &[u8] {
-        &self[from..to]
+    fn slice(&self, range: Range<usize>) -> &[u8] {
+        &self[range]
     }
 
     fn max_len(&self) -> usize {
@@ -129,8 +128,8 @@ impl Writable for &[u8] {
     }
 }
 
-/// Represents the capture group positions for a single [Re] match only in terms of byte offsets
-/// into the original haystack.
+/// Represents the capture group positions for a single [RegexEngine] match only in terms of byte
+/// offsets into the original haystack.
 ///
 /// This is converted into a [Captures] by [TaggedCapturesIter][crate::TaggedCapturesIter] as
 /// matches are returned during iteration.
@@ -165,8 +164,8 @@ impl RawCaptures {
     }
 }
 
-/// Represents the capture group positions for a single [Re] match in terms of byte offsets into
-/// the original haystack that the match was run against.
+/// Represents the capture group positions for a single [RegexEngine] match in terms of byte
+/// offsets into the original haystack that the match was run against.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Captures<H>
 where
@@ -224,21 +223,21 @@ where
     pub fn match_text(&self) -> H::Slice<'_> {
         let (from, to) = self.get_match();
 
-        self.haystack.slice(from, to)
+        self.haystack.slice(from..to)
     }
 
     /// The full text of the submatch, if present, in the original haystack.
     pub fn submatch_text(&self, n: usize) -> Option<H::Slice<'_>> {
         let (from, to) = self.get(n)?;
 
-        Some(self.haystack.slice(from, to))
+        Some(self.haystack.slice(from..to))
     }
 
     /// Iterate over all submatches starting with the full match.
     pub fn iter_submatches(&self) -> impl Iterator<Item = Option<H::Slice<'_>>> {
         self.caps
             .iter()
-            .map(|cap| cap.map(|(from, to)| self.haystack.slice(from, to)))
+            .map(|cap| cap.map(|(from, to)| self.haystack.slice(from..to)))
     }
 }
 
@@ -247,7 +246,7 @@ mod impl_for_regex {
     use super::*;
     use regex::{Error, Regex, RegexBuilder};
 
-    impl Re for Regex {
+    impl RegexEngine for Regex {
         type CompileError = Error;
 
         fn compile(re: &str) -> Result<Self, Self::CompileError> {

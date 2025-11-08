@@ -18,7 +18,7 @@ pub enum Error {
     /// A syntax error in the provided structural regular expression.
     Syntax(ParseError),
     /// An error that occurred during parsing or compiling a regular expression with the given
-    /// [Re][re::Re] implementation.
+    /// [RegexEngine][re::RegexEngine].
     Regex(Box<dyn error::Error>),
 }
 

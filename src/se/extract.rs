@@ -1,6 +1,6 @@
 use crate::{
     compile::Inst,
-    re::{Haystack, RawCaptures, Re},
+    re::{Haystack, RawCaptures, RegexEngine},
     se::{Dot, Inner, MatchesInner, TaggedCaptures},
 };
 use std::sync::Arc;
@@ -45,7 +45,7 @@ impl Extract {
 
 pub(super) struct Iter<'s, R, H>
 where
-    R: Re,
+    R: RegexEngine,
     H: Haystack<R>,
 {
     haystack: H,
@@ -63,7 +63,7 @@ where
 
 impl<'s, R, H> Iter<'s, R, H>
 where
-    R: Re,
+    R: RegexEngine,
     H: Haystack<R>,
 {
     pub fn new(haystack: H, parent: Dot, ext: &'s Extract, inner: Arc<Inner<R>>) -> Self {
@@ -100,7 +100,7 @@ where
 
 impl<'s, R, H> Iterator for Iter<'s, R, H>
 where
-    R: Re,
+    R: RegexEngine,
     H: Haystack<R>,
 {
     type Item = TaggedCaptures<H>;

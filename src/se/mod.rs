@@ -3,7 +3,7 @@
 use crate::{
     Error,
     compile::{Compiler, Inst},
-    re::{Captures, Haystack, RawCaptures, Re, Sliceable},
+    re::{Captures, Haystack, RawCaptures, RegexEngine, Sliceable},
 };
 use std::{fmt, ops::Deref, sync::Arc};
 
@@ -25,7 +25,7 @@ pub(crate) use narrow::Narrow;
 #[derive(Clone)]
 pub struct Structex<R>
 where
-    R: Re,
+    R: RegexEngine,
 {
     raw: Arc<str>,
     inner: Arc<Inner<R>>,
@@ -33,7 +33,7 @@ where
 
 impl<R> fmt::Debug for Structex<R>
 where
-    R: Re,
+    R: RegexEngine,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Structex").field(&self.raw).finish()
@@ -42,7 +42,7 @@ where
 
 impl<R> fmt::Display for Structex<R>
 where
-    R: Re,
+    R: RegexEngine,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Structex({})", self.raw)
@@ -51,7 +51,7 @@ where
 
 impl<R> Structex<R>
 where
-    R: Re,
+    R: RegexEngine,
 {
     /// Compiles a structural regular expression. Once compiled it may be used repeatedly and cloned
     /// cheaply, but note that compilation can be an expensive process so [Structex] instances
@@ -379,7 +379,7 @@ impl StructexBuilder {
     /// If the expression was invalid, an error is returned.
     pub fn build<R>(self) -> Result<Structex<R>, Error>
     where
-        R: Re,
+        R: RegexEngine,
     {
         let mut c = Compiler {
             require_actions: self.require_actions,
@@ -422,7 +422,7 @@ impl StructexBuilder {
 
 pub(super) struct Inner<R>
 where
-    R: Re,
+    R: RegexEngine,
 {
     pub(super) inst: Inst,
     pub(super) re: Vec<R>,
@@ -564,7 +564,7 @@ impl Action {
 /// This iterator is created by [Structex::iter_tagged_captures].
 pub struct TaggedCapturesIter<'s, R, H>
 where
-    R: Re,
+    R: RegexEngine,
     H: Haystack<R>,
 {
     inner: Option<MatchesInner<'s, R, H>>,
@@ -572,7 +572,7 @@ where
 
 impl<'s, R, H> TaggedCapturesIter<'s, R, H>
 where
-    R: Re,
+    R: RegexEngine,
     H: Haystack<R>,
 {
     fn new(inst: &'s Inst, inner: Arc<Inner<R>>, haystack: H) -> Self {
@@ -592,7 +592,7 @@ where
 
 impl<'s, R, H> Iterator for TaggedCapturesIter<'s, R, H>
 where
-    R: Re,
+    R: RegexEngine,
     H: Haystack<R>,
 {
     type Item = TaggedCaptures<H>;
@@ -604,7 +604,7 @@ where
 
 enum MatchesInner<'s, R, H>
 where
-    R: Re,
+    R: RegexEngine,
     H: Haystack<R>,
 {
     Extract(extract::Iter<'s, R, H>),
@@ -614,7 +614,7 @@ where
 
 impl<'s, R, H> MatchesInner<'s, R, H>
 where
-    R: Re,
+    R: RegexEngine,
     H: Haystack<R>,
 {
     fn new(inst: &'s Inst, inner: Arc<Inner<R>>, haystack: H, dot: Dot) -> Option<Self> {
@@ -646,7 +646,7 @@ where
 
 impl<'s, R, H> Iterator for MatchesInner<'s, R, H>
 where
-    R: Re,
+    R: RegexEngine,
     H: Haystack<R>,
 {
     type Item = TaggedCaptures<H>;

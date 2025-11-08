@@ -1,6 +1,6 @@
 use crate::{
     compile::Inst,
-    re::{Haystack, Re},
+    re::{Haystack, RegexEngine},
     se::{Dot, Inner, MatchesInner},
 };
 use std::sync::Arc;
@@ -19,7 +19,7 @@ impl Narrow {
         inner: Arc<Inner<R>>,
     ) -> Option<MatchesInner<'s, R, H>>
     where
-        R: Re,
+        R: RegexEngine,
         H: Haystack<R>,
     {
         let (from, to) = dot.loc();
