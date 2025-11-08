@@ -12,12 +12,12 @@ pub(crate) struct Narrow {
 }
 
 impl Narrow {
-    pub(super) fn apply<'h, R>(
-        &'h self,
-        haystack: &'h R::Haystack,
+    pub(super) fn apply<'s, 'h, R>(
+        &'s self,
+        haystack: R::Haystack<'h>,
         dot: Dot,
         inner: Arc<Inner<R>>,
-    ) -> Option<MatchesInner<'h, R>>
+    ) -> Option<MatchesInner<'s, 'h, R>>
     where
         R: Re,
     {

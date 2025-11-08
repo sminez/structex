@@ -43,31 +43,31 @@ impl Extract {
     }
 }
 
-pub(super) struct Iter<'h, R>
+pub(super) struct Iter<'s, 'h, R>
 where
     R: Re,
 {
-    haystack: &'h R::Haystack,
-    ext: &'h Extract,
+    haystack: R::Haystack<'h>,
+    ext: &'s Extract,
     inner: Arc<Inner<R>>,
     /// The original parent dot we are extracting from
     parent: Dot,
     /// The child branch we are currently iterating over
-    child: Option<Box<MatchesInner<'h, R>>>,
+    child: Option<Box<MatchesInner<'s, 'h, R>>>,
     /// The current match
     held: Option<RawCaptures>,
     /// The current byte offset we are up to
     pos: usize,
 }
 
-impl<'h, R> Iter<'h, R>
+impl<'s, 'h, R> Iter<'s, 'h, R>
 where
     R: Re,
 {
     pub fn new(
-        haystack: &'h R::Haystack,
+        haystack: R::Haystack<'h>,
         parent: Dot,
-        ext: &'h Extract,
+        ext: &'s Extract,
         inner: Arc<Inner<R>>,
     ) -> Self {
         let pos = parent.from();
@@ -100,11 +100,11 @@ where
     }
 }
 
-impl<'h, R> Iterator for Iter<'h, R>
+impl<'s, 'h, R> Iterator for Iter<'s, 'h, R>
 where
     R: Re,
 {
-    type Item = TaggedCaptures<'h, R>;
+    type Item = TaggedCaptures<R::Haystack<'h>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

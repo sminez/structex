@@ -17,11 +17,7 @@ pub trait Re: Sized {
     /// The haystack that can be searched by this [Re] using the
     /// [is_match_between][Re::is_match_between] and [captures_between][Re::captures_between]
     /// methods.
-    type Haystack: Haystack<Slice = Self::Slice> + ?Sized;
-
-    /// The slice type of the associated [Haystack] that is returned by [Captures] methods when
-    /// extracting matches and submatches.
-    type Slice: Writable + ?Sized;
+    type Haystack<'h>: Haystack + 'h;
 
     /// Attempt to compile the given regular expression for use inside of a [Structex][crate::Structex].
     ///
@@ -43,7 +39,7 @@ pub trait Re: Sized {
     /// This does not need to search for the leftmost-longest match and where possible should be
     /// faster to run that [Re::captures_between] which needs to extract the position of the match
     /// itself and all submatches.
-    fn is_match_between(&self, haystack: &Self::Haystack, from: usize, to: usize) -> bool;
+    fn is_match_between(&self, haystack: Self::Haystack<'_>, from: usize, to: usize) -> bool;
 
     /// Searches for the first match of this regex between the given byte offsets in the given
     /// haystack, returning the overall match along with the matches of each capture group in the
@@ -52,7 +48,7 @@ pub trait Re: Sized {
     /// See [RawCaptures::new] for requirements around constructing the return type.
     fn captures_between(
         &self,
-        haystack: &Self::Haystack,
+        haystack: Self::Haystack<'_>,
         from: usize,
         to: usize,
     ) -> Option<RawCaptures>;
@@ -60,19 +56,21 @@ pub trait Re: Sized {
 
 /// A haystack is an associated type on [Re] that the regular expression engine can be run against.
 ///
-/// Typically this is a [str] but some engines may support richer types in order to provide
+/// Typically this is a [&str] but some engines may support richer types in order to provide
 /// searching of streams or discontiguous inputs.
-pub trait Haystack: Writable + fmt::Debug + PartialEq + Eq + Sync {
+pub trait Haystack: Writable + fmt::Debug + PartialEq + Eq + Copy {
     /// The output of the [slice][Haystack::slice] method.
     ///
     /// Typically the same type as the haystack itself but not required to be so.
-    type Slice: Writable + Sync + ?Sized;
+    type Slice<'h>: Writable
+    where
+        Self: 'h;
 
     /// A contiguous sub-section of the haystack between the given bytes offsets.
     ///
     /// The given byte offsets from a half-open interval, inclusive of `from` but omitting `to`.
     /// This is the same semantics as a normal Rust range `from..to`.
-    fn slice(&self, from: usize, to: usize) -> &Self::Slice;
+    fn slice<'h>(&'h self, from: usize, to: usize) -> Self::Slice<'h>;
 
     /// The maximum length of the full haystack in bytes.
     ///
@@ -90,10 +88,13 @@ pub trait Writable {
         W: io::Write;
 }
 
-impl Haystack for str {
-    type Slice = str;
+impl Haystack for &str {
+    type Slice<'h>
+        = &'h str
+    where
+        Self: 'h;
 
-    fn slice(&self, from: usize, to: usize) -> &Self::Slice {
+    fn slice(&self, from: usize, to: usize) -> &str {
         &self[from..to]
     }
 
@@ -102,7 +103,7 @@ impl Haystack for str {
     }
 }
 
-impl Writable for str {
+impl Writable for &str {
     fn write_to<W>(&self, w: &mut W) -> io::Result<usize>
     where
         W: io::Write,
@@ -111,31 +112,13 @@ impl Writable for str {
     }
 }
 
-impl Haystack for String {
-    type Slice = str;
-
-    fn slice(&self, from: usize, to: usize) -> &Self::Slice {
-        &self[from..to]
-    }
-
-    fn max_len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl Writable for String {
-    fn write_to<W>(&self, w: &mut W) -> io::Result<usize>
+impl Haystack for &[u8] {
+    type Slice<'h>
+        = &'h [u8]
     where
-        W: io::Write,
-    {
-        w.write_all(self.as_bytes()).map(|_| self.len())
-    }
-}
+        Self: 'h;
 
-impl Haystack for [u8] {
-    type Slice = [u8];
-
-    fn slice(&self, from: usize, to: usize) -> &Self::Slice {
+    fn slice(&self, from: usize, to: usize) -> &[u8] {
         &self[from..to]
     }
 
@@ -144,28 +127,7 @@ impl Haystack for [u8] {
     }
 }
 
-impl Writable for [u8] {
-    fn write_to<W>(&self, w: &mut W) -> io::Result<usize>
-    where
-        W: io::Write,
-    {
-        w.write_all(self).map(|_| self.len())
-    }
-}
-
-impl Haystack for Vec<u8> {
-    type Slice = [u8];
-
-    fn slice(&self, from: usize, to: usize) -> &Self::Slice {
-        &self[from..to]
-    }
-
-    fn max_len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl Writable for Vec<u8> {
+impl Writable for &[u8] {
     fn write_to<W>(&self, w: &mut W) -> io::Result<usize>
     where
         W: io::Write,
@@ -212,19 +174,19 @@ impl RawCaptures {
 /// Represents the capture group positions for a single [Re] match in terms of byte offsets into
 /// the original haystack that the match was run against.
 #[derive(Debug, PartialEq, Eq)]
-pub struct Captures<'h, R>
+pub struct Captures<H>
 where
-    R: Re,
+    H: Haystack,
 {
-    haystack: &'h R::Haystack,
+    haystack: H,
     caps: Vec<Option<(usize, usize)>>,
 }
 
-impl<'h, R> Captures<'h, R>
+impl<H> Captures<H>
 where
-    R: Re,
+    H: Haystack,
 {
-    pub(crate) fn new(haystack: &'h R::Haystack, caps: Vec<Option<(usize, usize)>>) -> Self {
+    pub(crate) fn new(haystack: H, caps: Vec<Option<(usize, usize)>>) -> Self {
         Self { haystack, caps }
     }
 
@@ -265,21 +227,21 @@ where
     }
 
     /// The full text of the match in the original haystack.
-    pub fn match_text(&self) -> &'h R::Slice {
+    pub fn match_text(&self) -> H::Slice<'_> {
         let (from, to) = self.get_match();
 
         self.haystack.slice(from, to)
     }
 
     /// The full text of the submatch, if present, in the original haystack.
-    pub fn submatch_text(&self, n: usize) -> Option<&'h R::Slice> {
+    pub fn submatch_text(&self, n: usize) -> Option<H::Slice<'_>> {
         let (from, to) = self.get(n)?;
 
         Some(self.haystack.slice(from, to))
     }
 
     /// Iterate over all submatches starting with the full match.
-    pub fn iter_submatches(&'h self) -> impl Iterator<Item = Option<&'h R::Slice>> {
+    pub fn iter_submatches(&self) -> impl Iterator<Item = Option<H::Slice<'_>>> {
         self.caps
             .iter()
             .map(|cap| cap.map(|(from, to)| self.haystack.slice(from, to)))
@@ -289,20 +251,19 @@ where
 #[cfg(feature = "regex")]
 impl Re for regex::Regex {
     type CompileError = regex::Error;
-    type Haystack = str;
-    type Slice = str;
+    type Haystack<'h> = &'h str;
 
     fn compile(re: &str) -> Result<Self, Self::CompileError> {
         regex::RegexBuilder::new(re).multi_line(true).build()
     }
 
-    fn is_match_between(&self, haystack: &Self::Haystack, from: usize, to: usize) -> bool {
+    fn is_match_between(&self, haystack: Self::Haystack<'_>, from: usize, to: usize) -> bool {
         self.is_match(&haystack[from..to])
     }
 
     fn captures_between(
         &self,
-        haystack: &Self::Haystack,
+        haystack: Self::Haystack<'_>,
         from: usize,
         to: usize,
     ) -> Option<RawCaptures> {

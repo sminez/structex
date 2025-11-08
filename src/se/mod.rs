@@ -155,9 +155,9 @@ where
     /// we're here to talk about Alice.
     /// Alice is everyone's friend."#;
     ///
-    /// let last_words: Vec<&str> = se
+    /// let last_words: Vec<String> = se
     ///     .iter_tagged_captures(haystack)
-    ///     .map(|m| m.submatch_text(1).unwrap())
+    ///     .map(|m| m.submatch_text(1).unwrap().to_string())
     ///     .collect();
     ///
     /// assert_eq!(&last_words, &["Bob", "Alice", "friend"]);
@@ -166,6 +166,8 @@ where
     /// When writing more complex expressions you will want to assign tagged actions to each
     /// matching branch in order to distinguish them:
     /// ```
+    /// use structex::TaggedCaptures;
+    ///
     /// type Structex = structex::Structex<regex::Regex>;
     ///
     /// let se = Structex::new(r#"
@@ -185,8 +187,12 @@ where
     /// we're here to talk about Alice.
     /// Alice is everyone's friend."#;
     ///
-    /// let words: Vec<(char, &str)> = se
+    /// let captures: Vec<TaggedCaptures<&str>> = se
     ///     .iter_tagged_captures(haystack)
+    ///     .collect();
+    ///
+    /// let words: Vec<(char, &str)> = captures
+    ///     .iter()
     ///     .map(|m| (m.tag().unwrap(), m.submatch_text(1).unwrap()))
     ///     .collect();
     ///
@@ -195,10 +201,10 @@ where
     ///     &[('B', "This"), ('A', "Bob"), ('A', "Alice"), ('A', "friend")]
     /// );
     /// ```
-    pub fn iter_tagged_captures<'h>(
-        &'h self,
-        haystack: &'h R::Haystack,
-    ) -> TaggedCapturesIter<'h, R> {
+    pub fn iter_tagged_captures<'s, 'h>(
+        &'s self,
+        haystack: R::Haystack<'h>,
+    ) -> TaggedCapturesIter<'s, 'h, R> {
         TaggedCapturesIter::new(&self.inner.inst, self.inner.clone(), haystack)
     }
 }
@@ -452,9 +458,9 @@ impl Dot {
         }
     }
 
-    fn into_captures<'h, R>(self, haystack: &'h R::Haystack) -> Captures<'h, R>
+    fn into_captures<H>(self, haystack: H) -> Captures<H>
     where
-        R: Re,
+        H: Haystack,
     {
         match self {
             Self::Range { from, to } => Captures::new(haystack, vec![Some((from, to))]),
@@ -468,23 +474,23 @@ impl Dot {
 /// If an action was specified at the match point in the original [Structex] then `action` will
 /// contain that action, otherwise it will be `None`.
 #[derive(Debug, PartialEq, Eq)]
-pub struct TaggedCaptures<'h, R>
+pub struct TaggedCaptures<H>
 where
-    R: Re,
+    H: Haystack,
 {
     /// The match and any captures extracted from it.
-    pub captures: Captures<'h, R>,
+    pub captures: Captures<H>,
     /// An optional [Action] assigned by the match if one was specified in the [Structex]
     /// expression.
     pub action: Option<Arc<Action>>,
 }
 
-impl<'h, R> TaggedCaptures<'h, R>
+impl<H> TaggedCaptures<H>
 where
-    R: Re,
+    H: Haystack,
 {
-    /// Returns the [slice][Re::Slice] of the haystack that matched.
-    pub fn as_slice(&self) -> &R::Slice {
+    /// Returns the [slice][Haystack::Slice] of the haystack that matched.
+    pub fn as_slice(&self) -> H::Slice<'_> {
         self.captures.match_text()
     }
 
@@ -510,11 +516,11 @@ where
     }
 }
 
-impl<'h, R> Deref for TaggedCaptures<'h, R>
+impl<H> Deref for TaggedCaptures<H>
 where
-    R: Re,
+    H: Haystack,
 {
-    type Target = Captures<'h, R>;
+    type Target = Captures<H>;
 
     fn deref(&self) -> &Self::Target {
         &self.captures
@@ -556,18 +562,18 @@ impl Action {
 /// found. `'h` is the lifetime of the haystack.
 ///
 /// This iterator is created by [Structex::iter_tagged_captures].
-pub struct TaggedCapturesIter<'h, R>
+pub struct TaggedCapturesIter<'s, 'h, R>
 where
     R: Re,
 {
-    inner: Option<MatchesInner<'h, R>>,
+    inner: Option<MatchesInner<'s, 'h, R>>,
 }
 
-impl<'h, R> TaggedCapturesIter<'h, R>
+impl<'s, 'h, R> TaggedCapturesIter<'s, 'h, R>
 where
     R: Re,
 {
-    fn new(inst: &'h Inst, inner: Arc<Inner<R>>, haystack: &'h R::Haystack) -> Self {
+    fn new(inst: &'s Inst, inner: Arc<Inner<R>>, haystack: R::Haystack<'h>) -> Self {
         Self {
             inner: MatchesInner::new(
                 inst,
@@ -582,34 +588,34 @@ where
     }
 }
 
-impl<'h, R> Iterator for TaggedCapturesIter<'h, R>
+impl<'s, 'h, R> Iterator for TaggedCapturesIter<'s, 'h, R>
 where
     R: Re,
 {
-    type Item = TaggedCaptures<'h, R>;
+    type Item = TaggedCaptures<R::Haystack<'h>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.as_mut().and_then(|inner| inner.next())
     }
 }
 
-enum MatchesInner<'h, R>
+enum MatchesInner<'s, 'h, R>
 where
     R: Re,
 {
-    Extract(extract::Iter<'h, R>),
-    Parallel(parallel::Iter<'h, R>),
-    Emit(Option<TaggedCaptures<'h, R>>),
+    Extract(extract::Iter<'s, 'h, R>),
+    Parallel(parallel::Iter<'s, 'h, R>),
+    Emit(Option<TaggedCaptures<R::Haystack<'h>>>),
 }
 
-impl<'h, R> MatchesInner<'h, R>
+impl<'s, 'h, R> MatchesInner<'s, 'h, R>
 where
     R: Re,
 {
     fn new(
-        inst: &'h Inst,
+        inst: &'s Inst,
         inner: Arc<Inner<R>>,
-        haystack: &'h R::Haystack,
+        haystack: R::Haystack<'h>,
         dot: Dot,
     ) -> Option<Self> {
         match inst {
@@ -638,11 +644,11 @@ where
     }
 }
 
-impl<'h, R> Iterator for MatchesInner<'h, R>
+impl<'s, 'h, R> Iterator for MatchesInner<'s, 'h, R>
 where
     R: Re,
 {
-    type Item = TaggedCaptures<'h, R>;
+    type Item = TaggedCaptures<R::Haystack<'h>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {

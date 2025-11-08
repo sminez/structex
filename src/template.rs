@@ -106,7 +106,7 @@
 //! ```
 use crate::{
     parse::{self, ParseInput},
-    re::{Re, Writable},
+    re::{Haystack, Writable},
     se::TaggedCaptures,
 };
 use std::{
@@ -242,9 +242,9 @@ impl Template {
     ///
     /// To render to an arbitrary writer instead of a string, see the
     /// [render_to][Template::render_to] method.
-    pub fn render<R>(&self, caps: &TaggedCaptures<'_, R>) -> io::Result<String>
+    pub fn render<H>(&self, caps: &TaggedCaptures<H>) -> io::Result<String>
     where
-        R: Re,
+        H: Haystack,
     {
         let mut buf = Vec::with_capacity(self.raw.len() * 2);
         self.render_to(&mut buf, caps)?;
@@ -257,9 +257,9 @@ impl Template {
     /// Returns an error if any of the underlying write calls fail.
     ///
     /// To render directly to a [String], see the [render][Template::render] method.
-    pub fn render_to<R, W>(&self, w: &mut W, caps: &TaggedCaptures<'_, R>) -> io::Result<usize>
+    pub fn render_to<H, W>(&self, w: &mut W, caps: &TaggedCaptures<H>) -> io::Result<usize>
     where
-        R: Re,
+        H: Haystack,
         W: Write,
     {
         let mut n = 0;
@@ -339,7 +339,7 @@ mod tests {
     #[test_case("{1}\\n{2}", "foo\nbar"; "submatches and newline")]
     #[test]
     fn render_works(s: &str, expected: &str) {
-        let caps: TaggedCaptures<'_, regex::Regex> = TaggedCaptures {
+        let caps: TaggedCaptures<&str> = TaggedCaptures {
             captures: Captures::new("foo bar", vec![Some((0, 7)), Some((0, 3)), Some((4, 7))]),
             action: None,
         };

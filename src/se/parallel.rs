@@ -5,21 +5,21 @@ use crate::{
 };
 use std::sync::Arc;
 
-pub(super) struct Iter<'h, R>
+pub(super) struct Iter<'s, 'h, R>
 where
     R: Re,
 {
-    branches: Vec<Branch<'h, R>>,
+    branches: Vec<Branch<'s, 'h, R>>,
 }
 
-impl<'h, R> Iter<'h, R>
+impl<'s, 'h, R> Iter<'s, 'h, R>
 where
     R: Re,
 {
     pub fn new(
-        haystack: &'h R::Haystack,
+        haystack: R::Haystack<'h>,
         dot: Dot,
-        branches: &'h [Inst],
+        branches: &'s [Inst],
         inner: Arc<Inner<R>>,
     ) -> Self {
         let branches = branches
@@ -34,11 +34,11 @@ where
     }
 }
 
-impl<'h, R> Iterator for Iter<'h, R>
+impl<'s, 'h, R> Iterator for Iter<'s, 'h, R>
 where
     R: Re,
 {
-    type Item = TaggedCaptures<'h, R>;
+    type Item = TaggedCaptures<R::Haystack<'h>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.branches.retain_mut(|b| b.update());
@@ -67,15 +67,15 @@ where
     }
 }
 
-struct Branch<'h, R>
+struct Branch<'s, 'h, R>
 where
     R: Re,
 {
-    held: Option<TaggedCaptures<'h, R>>,
-    it: MatchesInner<'h, R>,
+    held: Option<TaggedCaptures<R::Haystack<'h>>>,
+    it: MatchesInner<'s, 'h, R>,
 }
 
-impl<'h, R> Branch<'h, R>
+impl<'s, 'h, R> Branch<'s, 'h, R>
 where
     R: Re,
 {
