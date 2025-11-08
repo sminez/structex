@@ -1,5 +1,5 @@
 //! The required interface for an underlying regex engine
-use std::{fmt, io, ops::Range};
+use std::{io, ops::Range};
 
 /// A [RegexEngine] is an underlying regular expression engine that can be used to match and
 /// extract text as part of a structural regular expression.
@@ -55,7 +55,7 @@ where
 }
 
 /// Something that supports extracting a contiguous sub-section between two bytes offsets.
-pub trait Sliceable: Writable + fmt::Debug + PartialEq + Eq + Copy {
+pub trait Sliceable: Writable + Copy {
     /// The output of the [slice][Sliceable::slice] method.
     type Slice<'h>: Writable
     where
