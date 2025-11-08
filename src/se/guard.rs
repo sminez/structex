@@ -1,6 +1,6 @@
 use crate::{
     compile::Inst,
-    re::Re,
+    re::{Haystack, Re},
     se::{Dot, Inner, MatchesInner},
 };
 use std::sync::Arc;
@@ -42,17 +42,18 @@ impl Guard {
         Some(self)
     }
 
-    pub(super) fn apply<'s, 'h, R>(
+    pub(super) fn apply<'s, R, H>(
         &'s self,
-        haystack: R::Haystack<'h>,
+        haystack: H,
         dot: Dot,
         inner: Arc<Inner<R>>,
-    ) -> Option<MatchesInner<'s, 'h, R>>
+    ) -> Option<MatchesInner<'s, R, H>>
     where
         R: Re,
+        H: Haystack<R>,
     {
         let (from, to) = dot.loc();
-        let is_match = inner.re[self.re].is_match_between(haystack, from, to);
+        let is_match = haystack.is_match_between(&inner.re[self.re], from, to);
         match (
             is_match,
             self.if_matching.as_ref(),

@@ -1,6 +1,6 @@
 use crate::{
     compile::Inst,
-    re::Re,
+    re::{Haystack, Re},
     se::{Dot, Inner, MatchesInner},
 };
 use std::sync::Arc;
@@ -12,17 +12,18 @@ pub(crate) struct Narrow {
 }
 
 impl Narrow {
-    pub(super) fn apply<'s, 'h, R>(
+    pub(super) fn apply<'s, R, H>(
         &'s self,
-        haystack: R::Haystack<'h>,
+        haystack: H,
         dot: Dot,
         inner: Arc<Inner<R>>,
-    ) -> Option<MatchesInner<'s, 'h, R>>
+    ) -> Option<MatchesInner<'s, R, H>>
     where
         R: Re,
+        H: Haystack<R>,
     {
         let (from, to) = dot.loc();
-        let cap = inner.re[self.re].captures_between(haystack, from, to)?;
+        let cap = haystack.captures_between(&inner.re[self.re], from, to)?;
 
         MatchesInner::new(&self.node, inner, haystack, Dot::Captures(cap))
     }

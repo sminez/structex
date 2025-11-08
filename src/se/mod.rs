@@ -3,7 +3,7 @@
 use crate::{
     Error,
     compile::{Compiler, Inst},
-    re::{Captures, Haystack, RawCaptures, Re},
+    re::{Captures, Haystack, RawCaptures, Re, Sliceable},
 };
 use std::{fmt, ops::Deref, sync::Arc};
 
@@ -201,10 +201,10 @@ where
     ///     &[('B', "This"), ('A', "Bob"), ('A', "Alice"), ('A', "friend")]
     /// );
     /// ```
-    pub fn iter_tagged_captures<'s, 'h>(
-        &'s self,
-        haystack: R::Haystack<'h>,
-    ) -> TaggedCapturesIter<'s, 'h, R> {
+    pub fn iter_tagged_captures<'s, H>(&'s self, haystack: H) -> TaggedCapturesIter<'s, R, H>
+    where
+        H: Haystack<R>,
+    {
         TaggedCapturesIter::new(&self.inner.inst, self.inner.clone(), haystack)
     }
 }
@@ -460,7 +460,7 @@ impl Dot {
 
     fn into_captures<H>(self, haystack: H) -> Captures<H>
     where
-        H: Haystack,
+        H: Sliceable,
     {
         match self {
             Self::Range { from, to } => Captures::new(haystack, vec![Some((from, to))]),
@@ -476,7 +476,7 @@ impl Dot {
 #[derive(Debug, PartialEq, Eq)]
 pub struct TaggedCaptures<H>
 where
-    H: Haystack,
+    H: Sliceable,
 {
     /// The match and any captures extracted from it.
     pub captures: Captures<H>,
@@ -487,9 +487,9 @@ where
 
 impl<H> TaggedCaptures<H>
 where
-    H: Haystack,
+    H: Sliceable,
 {
-    /// Returns the [slice][Haystack::Slice] of the haystack that matched.
+    /// Returns the [slice][Sliceable::Slice] of the haystack that matched.
     pub fn as_slice(&self) -> H::Slice<'_> {
         self.captures.match_text()
     }
@@ -518,7 +518,7 @@ where
 
 impl<H> Deref for TaggedCaptures<H>
 where
-    H: Haystack,
+    H: Sliceable,
 {
     type Target = Captures<H>;
 
@@ -559,22 +559,23 @@ impl Action {
 /// An iterator over all matches in a haystack.
 ///
 /// This iterator yields [TaggedCaptures] values. The iterator stops when no more matches can be
-/// found. `'s` is the lifetime of the [Structex] that constructed the iterator and `'h` is the
-/// lifetime of the haystack being searched.
+/// found. `'s` is the lifetime of the [Structex] that constructed the iterator.
 ///
 /// This iterator is created by [Structex::iter_tagged_captures].
-pub struct TaggedCapturesIter<'s, 'h, R>
+pub struct TaggedCapturesIter<'s, R, H>
 where
     R: Re,
+    H: Haystack<R>,
 {
-    inner: Option<MatchesInner<'s, 'h, R>>,
+    inner: Option<MatchesInner<'s, R, H>>,
 }
 
-impl<'s, 'h, R> TaggedCapturesIter<'s, 'h, R>
+impl<'s, R, H> TaggedCapturesIter<'s, R, H>
 where
     R: Re,
+    H: Haystack<R>,
 {
-    fn new(inst: &'s Inst, inner: Arc<Inner<R>>, haystack: R::Haystack<'h>) -> Self {
+    fn new(inst: &'s Inst, inner: Arc<Inner<R>>, haystack: H) -> Self {
         Self {
             inner: MatchesInner::new(
                 inst,
@@ -589,36 +590,34 @@ where
     }
 }
 
-impl<'s, 'h, R> Iterator for TaggedCapturesIter<'s, 'h, R>
+impl<'s, R, H> Iterator for TaggedCapturesIter<'s, R, H>
 where
     R: Re,
+    H: Haystack<R>,
 {
-    type Item = TaggedCaptures<R::Haystack<'h>>;
+    type Item = TaggedCaptures<H>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.as_mut().and_then(|inner| inner.next())
     }
 }
 
-enum MatchesInner<'s, 'h, R>
+enum MatchesInner<'s, R, H>
 where
     R: Re,
+    H: Haystack<R>,
 {
-    Extract(extract::Iter<'s, 'h, R>),
-    Parallel(parallel::Iter<'s, 'h, R>),
-    Emit(Option<TaggedCaptures<R::Haystack<'h>>>),
+    Extract(extract::Iter<'s, R, H>),
+    Parallel(parallel::Iter<'s, R, H>),
+    Emit(Option<TaggedCaptures<H>>),
 }
 
-impl<'s, 'h, R> MatchesInner<'s, 'h, R>
+impl<'s, R, H> MatchesInner<'s, R, H>
 where
     R: Re,
+    H: Haystack<R>,
 {
-    fn new(
-        inst: &'s Inst,
-        inner: Arc<Inner<R>>,
-        haystack: R::Haystack<'h>,
-        dot: Dot,
-    ) -> Option<Self> {
+    fn new(inst: &'s Inst, inner: Arc<Inner<R>>, haystack: H, dot: Dot) -> Option<Self> {
         match inst {
             // EmitMatch and Action just emit their value
             Inst::EmitMatch => Some(Self::Emit(Some(TaggedCaptures {
@@ -645,11 +644,12 @@ where
     }
 }
 
-impl<'s, 'h, R> Iterator for MatchesInner<'s, 'h, R>
+impl<'s, R, H> Iterator for MatchesInner<'s, R, H>
 where
     R: Re,
+    H: Haystack<R>,
 {
-    type Item = TaggedCaptures<R::Haystack<'h>>;
+    type Item = TaggedCaptures<H>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {

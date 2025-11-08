@@ -106,7 +106,7 @@
 //! ```
 use crate::{
     parse::{self, ParseInput},
-    re::{Haystack, Writable},
+    re::{Sliceable, Writable},
     se::TaggedCaptures,
 };
 use std::{
@@ -244,7 +244,7 @@ impl Template {
     /// [render_to][Template::render_to] method.
     pub fn render<H>(&self, caps: &TaggedCaptures<H>) -> io::Result<String>
     where
-        H: Haystack,
+        H: Sliceable,
     {
         let mut buf = Vec::with_capacity(self.raw.len() * 2);
         self.render_to(&mut buf, caps)?;
@@ -259,7 +259,7 @@ impl Template {
     /// To render directly to a [String], see the [render][Template::render] method.
     pub fn render_to<H, W>(&self, w: &mut W, caps: &TaggedCaptures<H>) -> io::Result<usize>
     where
-        H: Haystack,
+        H: Sliceable,
         W: Write,
     {
         let mut n = 0;

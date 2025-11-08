@@ -1,6 +1,6 @@
 use crate::{
     compile::Inst,
-    re::{RawCaptures, Re},
+    re::{Haystack, RawCaptures, Re},
     se::{Dot, Inner, MatchesInner, TaggedCaptures},
 };
 use std::sync::Arc;
@@ -43,33 +43,30 @@ impl Extract {
     }
 }
 
-pub(super) struct Iter<'s, 'h, R>
+pub(super) struct Iter<'s, R, H>
 where
     R: Re,
+    H: Haystack<R>,
 {
-    haystack: R::Haystack<'h>,
+    haystack: H,
     ext: &'s Extract,
     inner: Arc<Inner<R>>,
     /// The original parent dot we are extracting from
     parent: Dot,
     /// The child branch we are currently iterating over
-    child: Option<Box<MatchesInner<'s, 'h, R>>>,
+    child: Option<Box<MatchesInner<'s, R, H>>>,
     /// The current match
     held: Option<RawCaptures>,
     /// The current byte offset we are up to
     pos: usize,
 }
 
-impl<'s, 'h, R> Iter<'s, 'h, R>
+impl<'s, R, H> Iter<'s, R, H>
 where
     R: Re,
+    H: Haystack<R>,
 {
-    pub fn new(
-        haystack: R::Haystack<'h>,
-        parent: Dot,
-        ext: &'s Extract,
-        inner: Arc<Inner<R>>,
-    ) -> Self {
+    pub fn new(haystack: H, parent: Dot, ext: &'s Extract, inner: Arc<Inner<R>>) -> Self {
         let pos = parent.from();
 
         Self {
@@ -84,7 +81,8 @@ where
     }
 
     fn next_captures(&self) -> Option<RawCaptures> {
-        self.inner.re[self.ext.re].captures_between(self.haystack, self.pos, self.parent.to())
+        self.haystack
+            .captures_between(&self.inner.re[self.ext.re], self.pos, self.parent.to())
     }
 
     fn set_extract(&mut self, dot: Dot) {
@@ -100,11 +98,12 @@ where
     }
 }
 
-impl<'s, 'h, R> Iterator for Iter<'s, 'h, R>
+impl<'s, R, H> Iterator for Iter<'s, R, H>
 where
     R: Re,
+    H: Haystack<R>,
 {
-    type Item = TaggedCaptures<R::Haystack<'h>>;
+    type Item = TaggedCaptures<H>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
