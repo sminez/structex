@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Captures","RawCaptures"],"trait":["Haystack","Re","Writable"]};
+window.SIDEBAR_ITEMS = {"struct":["Captures","RawCaptures"],"trait":["Haystack","RegexEngine","Sliceable","Writable"]};
