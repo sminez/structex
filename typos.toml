@@ -15,12 +15,16 @@ extend-ignore-re = [
 
 # Match Identifier - Case Sensitive
 [default.extend-identifiers]
+Bck = "Bck"
+Fwd = "Fwd"
 
 # Match Inside a Word - Case Insensitive
 [default.extend-words]
+lits = "lits"
 
 [files]
 ignore-hidden = true
 extend-exclude = [
-    "tests/raw_data"
+    "tests/raw_data",
+    "target/"
 ]

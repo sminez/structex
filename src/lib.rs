@@ -19,7 +19,7 @@ pub enum Error {
     Syntax(ParseError),
     /// An error that occurred during parsing or compiling a regular expression with the given
     /// [RegexEngine][re::RegexEngine].
-    Regex(Box<dyn error::Error>),
+    Regex(Box<dyn error::Error + Send + Sync>),
 }
 
 impl error::Error for Error {}

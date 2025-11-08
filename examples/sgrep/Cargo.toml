@@ -1,0 +1,11 @@
+[package]
+name = "sgrep"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+structex = { path = "../../" }
+ad_regex = { path = "../ad_regex" }
+anyhow = "1.0.100"
+clap = { version = "4.5.51", features = ["derive"] }

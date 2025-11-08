@@ -13,7 +13,7 @@ pub trait RegexEngine: Sized {
     /// given regular expression fails. This will be wrapped into an [Error][crate::Error] when
     /// returned from [Structex::compile][crate::Structex::new] or
     /// [StructexBuilder::build][crate::StructexBuilder::build].
-    type CompileError: std::error::Error + 'static;
+    type CompileError: std::error::Error + Send + Sync + 'static;
 
     /// Attempt to compile the given regular expression for use inside of a [Structex][crate::Structex].
     ///
