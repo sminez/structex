@@ -106,7 +106,7 @@
 <a href=#106 id=106 data-nosnippet>106</a>//! ```
 <a href=#107 id=107 data-nosnippet>107</a></span><span class="kw">use crate</span>::{
 <a href=#108 id=108 data-nosnippet>108</a>    parse::{<span class="self">self</span>, ParseInput},
-<a href=#109 id=109 data-nosnippet>109</a>    re::{Re, Writable},
+<a href=#109 id=109 data-nosnippet>109</a>    re::{Haystack, Writable},
 <a href=#110 id=110 data-nosnippet>110</a>    se::TaggedCaptures,
 <a href=#111 id=111 data-nosnippet>111</a>};
 <a href=#112 id=112 data-nosnippet>112</a><span class="kw">use </span>std::{
@@ -242,9 +242,9 @@
 <a href=#242 id=242 data-nosnippet>242</a>    ///
 <a href=#243 id=243 data-nosnippet>243</a>    /// To render to an arbitrary writer instead of a string, see the
 <a href=#244 id=244 data-nosnippet>244</a>    /// [render_to][Template::render_to] method.
-<a href=#245 id=245 data-nosnippet>245</a>    </span><span class="kw">pub fn </span>render&lt;R&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, caps: <span class="kw-2">&amp;</span>TaggedCaptures&lt;<span class="lifetime">'_</span>, R&gt;) -&gt; io::Result&lt;String&gt;
+<a href=#245 id=245 data-nosnippet>245</a>    </span><span class="kw">pub fn </span>render&lt;H&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, caps: <span class="kw-2">&amp;</span>TaggedCaptures&lt;H&gt;) -&gt; io::Result&lt;String&gt;
 <a href=#246 id=246 data-nosnippet>246</a>    <span class="kw">where
-<a href=#247 id=247 data-nosnippet>247</a>        </span>R: Re,
+<a href=#247 id=247 data-nosnippet>247</a>        </span>H: Haystack,
 <a href=#248 id=248 data-nosnippet>248</a>    {
 <a href=#249 id=249 data-nosnippet>249</a>        <span class="kw">let </span><span class="kw-2">mut </span>buf = Vec::with_capacity(<span class="self">self</span>.raw.len() * <span class="number">2</span>);
 <a href=#250 id=250 data-nosnippet>250</a>        <span class="self">self</span>.render_to(<span class="kw-2">&amp;mut </span>buf, caps)<span class="question-mark">?</span>;
@@ -257,9 +257,9 @@
 <a href=#257 id=257 data-nosnippet>257</a>    /// Returns an error if any of the underlying write calls fail.
 <a href=#258 id=258 data-nosnippet>258</a>    ///
 <a href=#259 id=259 data-nosnippet>259</a>    /// To render directly to a [String], see the [render][Template::render] method.
-<a href=#260 id=260 data-nosnippet>260</a>    </span><span class="kw">pub fn </span>render_to&lt;R, W&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, w: <span class="kw-2">&amp;mut </span>W, caps: <span class="kw-2">&amp;</span>TaggedCaptures&lt;<span class="lifetime">'_</span>, R&gt;) -&gt; io::Result&lt;usize&gt;
+<a href=#260 id=260 data-nosnippet>260</a>    </span><span class="kw">pub fn </span>render_to&lt;H, W&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, w: <span class="kw-2">&amp;mut </span>W, caps: <span class="kw-2">&amp;</span>TaggedCaptures&lt;H&gt;) -&gt; io::Result&lt;usize&gt;
 <a href=#261 id=261 data-nosnippet>261</a>    <span class="kw">where
-<a href=#262 id=262 data-nosnippet>262</a>        </span>R: Re,
+<a href=#262 id=262 data-nosnippet>262</a>        </span>H: Haystack,
 <a href=#263 id=263 data-nosnippet>263</a>        W: Write,
 <a href=#264 id=264 data-nosnippet>264</a>    {
 <a href=#265 id=265 data-nosnippet>265</a>        <span class="kw">let </span><span class="kw-2">mut </span>n = <span class="number">0</span>;
@@ -339,7 +339,7 @@
 <a href=#339 id=339 data-nosnippet>339</a>    #[test_case(<span class="string">"{1}\\n{2}"</span>, <span class="string">"foo\nbar"</span>; <span class="string">"submatches and newline"</span>)]
 <a href=#340 id=340 data-nosnippet>340</a>    #[test]
 <a href=#341 id=341 data-nosnippet>341</a>    </span><span class="kw">fn </span>render_works(s: <span class="kw-2">&amp;</span>str, expected: <span class="kw-2">&amp;</span>str) {
-<a href=#342 id=342 data-nosnippet>342</a>        <span class="kw">let </span>caps: TaggedCaptures&lt;<span class="lifetime">'_</span>, regex::Regex&gt; = TaggedCaptures {
+<a href=#342 id=342 data-nosnippet>342</a>        <span class="kw">let </span>caps: TaggedCaptures&lt;<span class="kw-2">&amp;</span>str&gt; = TaggedCaptures {
 <a href=#343 id=343 data-nosnippet>343</a>            captures: Captures::new(<span class="string">"foo bar"</span>, <span class="macro">vec!</span>[<span class="prelude-val">Some</span>((<span class="number">0</span>, <span class="number">7</span>)), <span class="prelude-val">Some</span>((<span class="number">0</span>, <span class="number">3</span>)), <span class="prelude-val">Some</span>((<span class="number">4</span>, <span class="number">7</span>))]),
 <a href=#344 id=344 data-nosnippet>344</a>            action: <span class="prelude-val">None</span>,
 <a href=#345 id=345 data-nosnippet>345</a>        };
