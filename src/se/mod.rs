@@ -559,7 +559,8 @@ impl Action {
 /// An iterator over all matches in a haystack.
 ///
 /// This iterator yields [TaggedCaptures] values. The iterator stops when no more matches can be
-/// found. `'h` is the lifetime of the haystack.
+/// found. `'s` is the lifetime of the [Structex] that constructed the iterator and `'h` is the
+/// lifetime of the haystack being searched.
 ///
 /// This iterator is created by [Structex::iter_tagged_captures].
 pub struct TaggedCapturesIter<'s, 'h, R>
