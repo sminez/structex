@@ -5,16 +5,18 @@
 //! extracted by a [Structex][crate::Structex].
 //!
 //! # Syntax
-//! The syntax supported for templating is extremely minimal and focuses solely on injecting
-//! submatches into a user provided template. In its simplest form a template is simply a string
-//! literal, but the syntax also supports referencing submatches by their index. To inject the
-//! contents of a submatch at a particular point within a template, place the capture index inside
-//! of curly braces: `"submatch 1 is {1} and submatch 2 is {2}"`.
+//! The syntax supported for templating is extremely minimal and focuses on injecting submatches
+//! into a user provided template. In its simplest form a template is simply a string literal, but
+//! the syntax also supports referencing submatches by their index. To inject the contents of a
+//! submatch at a particular point within a template, place the capture index inside of curly
+//! braces: `"submatch 1 is {1} and submatch 2 is {2}"`. It is also permitted to reference
+//! arbitrary variables within a template provided they are rendered with either the
+//! [render_with_context][Template::render_with_context] or
+//! [render_with_context_to][Template::render_with_context_to] methods.
 //!
 //! ## Syntax Errors
-//! It is an error to have an unclosed `{}` pair within a template or to place something other than
-//! a capture index inside of curly braces. To escape a curly brace, place a `\` before the opening
-//! brace. Closing braces do not need to be escaped.
+//! It is an error to have an unclosed `{}` pair within a template. To escape a curly brace, place
+//! a `\` before the opening brace. Closing braces do not need to be escaped.
 //!
 //! ```
 //! use structex::template::Template;
@@ -42,6 +44,9 @@
 //! // The same reference multiple times
 //! assert!(Template::parse("{1}, {1}!").is_ok());
 //!
+//! // Something other than a capture index as a reference
+//! assert!(Template::parse("{foo}").is_ok());
+//!
 //!
 //! // The following are all invalid templates
 //!
@@ -50,9 +55,6 @@
 //!
 //! // An unknown escape sequence
 //! assert!(Template::parse("\\[").is_err());
-//!
-//! // Something other than a capture index as a reference
-//! assert!(Template::parse("{foo}").is_err());
 //! ```
 //!
 //! # Usage
@@ -104,6 +106,69 @@
 //!     ]
 //! );
 //! ```
+//!
+//! To render values other than captures from a Structex, implement the [Context] trait:
+//! ```
+//! use structex::{Structex, template::{Context, Template}};
+//! use regex::Regex;
+//! use std::io::{self, Write};
+//!
+//! struct Ctx;
+//!
+//! impl Context for Ctx {
+//!     fn render_var<W>(&self, var: &str, w: &mut W) -> io::Result<usize>
+//!     where
+//!         W: io::Write
+//!     {
+//!         match var {
+//!             "foo" => w.write(b"last word"),
+//!             "bar" => w.write(b"first word"),
+//!             _ => Err(io::Error::other("unknown variable"))
+//!         }
+//!     }
+//! }
+//!
+//! let haystack = r#"This is a multi-line
+//! string that mentions peoples names.
+//! People like Alice and Bob. People
+//! like Claire and David, but really
+//! we're here to talk about Alice.
+//! Alice is everyone's friend."#;
+//!
+//! let se: Structex<Regex> = Structex::new(r#"
+//!   x/(.|\n)*?\./ {
+//!     g/Alice/ n/(\w+)\./ p/The {foo} is '{1}'/;
+//!     v/Alice/ n/(\w+)/   p/The {bar} is '{1}'/;
+//!   }
+//! "#).unwrap();
+//!
+//! // Parse and register the templates
+//! let templates: Vec<Template> = se
+//!     .actions()
+//!     .iter()
+//!     .map(|action| Template::parse(action.arg().unwrap()).unwrap())
+//!     .collect();
+//!
+//!
+//! let output: Vec<String> = se
+//!     .iter_tagged_captures(haystack)
+//!     .map(|caps| {
+//!         let id = caps.id().unwrap();
+//!         templates[id].render_with_context(&caps, &Ctx).unwrap()
+//!     })
+//!     .collect();
+//!
+//! assert_eq!(
+//!     &output,
+//!     &[
+//!         "The first word is 'This'",
+//!         "The last word is 'Bob'",
+//!         "The last word is 'Alice'",
+//!         "The last word is 'friend'",
+//!     ]
+//! );
+//! ```
+
 use crate::{
     parse::{self, ParseInput},
     re::{Sliceable, Writable},
@@ -154,6 +219,8 @@ enum Fragment {
     Esc(char),
     /// Sub-string of the raw template that should be rendered as-is
     Lit(usize, usize),
+    /// Sub-string of the raw template that should be passed to a context for rendering
+    Var(usize, usize),
 }
 
 /// A parsed string template that can be rendered for a given [TaggedCaptures].
@@ -205,14 +272,16 @@ impl Template {
                 '{' => {
                     push_lit(offset, &input, &mut fragments);
                     input.advance();
+                    offset = input.offset();
 
                     match input.read_until('}') {
                         Some(s) => {
-                            let i: usize = s
-                                .parse()
-                                .map_err(|_| error(ErrorKind::InvalidVariable(s.to_string())))?;
+                            let frag = match s.parse::<usize>() {
+                                Ok(i) => Fragment::Cap(i),
+                                Err(_) => Fragment::Var(offset, input.offset()),
+                            };
 
-                            fragments.push(Fragment::Cap(i));
+                            fragments.push(frag);
                         }
                         None => return Err(error(ErrorKind::UnexpectedEof)),
                     }
@@ -270,17 +339,80 @@ impl Template {
                     to - from
                 }
                 Fragment::Esc(ch) => w.write(ch.encode_utf8(&mut [0; 1]).as_bytes())?,
-                Fragment::Cap(n) => {
-                    match caps.submatch_text(*n) {
-                        Some(slice) => slice.write_to(w)?,
-                        None => 0, // drop unknown capture references as ""
-                    }
+                Fragment::Cap(n) => match caps.submatch_text(*n) {
+                    Some(slice) => slice.write_to(w)?,
+                    None => w.write(format!("{{{n}}}").as_bytes())?,
+                },
+                Fragment::Var(from, to) => {
+                    w.write(format!("{{{}}}", &self.raw[*from..*to]).as_bytes())?
                 }
             };
         }
 
         Ok(n)
     }
+
+    /// Render this template directly to a newly created [String] using the given [TaggedCaptures]
+    /// and context.
+    ///
+    /// Returns an error if any of the underlying write calls fail.
+    ///
+    /// To render to an arbitrary writer instead of a string, see the
+    /// [render_to][Template::render_to] method.
+    pub fn render_with_context<H, C>(&self, caps: &TaggedCaptures<H>, ctx: &C) -> io::Result<String>
+    where
+        H: Sliceable,
+        C: Context,
+    {
+        let mut buf = Vec::with_capacity(self.raw.len() * 2);
+        self.render_with_context_to(&mut buf, caps, ctx)?;
+
+        Ok(String::from_utf8(buf).unwrap())
+    }
+
+    /// Render this template to the provided writer using the given [TaggedCaptures] and Context.
+    ///
+    /// Returns an error if any of the underlying write calls fail.
+    ///
+    /// To render directly to a [String], see the [render][Template::render] method.
+    pub fn render_with_context_to<H, W, C>(
+        &self,
+        w: &mut W,
+        caps: &TaggedCaptures<H>,
+        ctx: &C,
+    ) -> io::Result<usize>
+    where
+        H: Sliceable,
+        W: Write,
+        C: Context,
+    {
+        let mut n = 0;
+        for frag in self.fragments.iter() {
+            n += match frag {
+                Fragment::Lit(from, to) => {
+                    w.write_all(&self.raw.as_bytes()[*from..*to])?;
+                    to - from
+                }
+                Fragment::Esc(ch) => w.write(ch.encode_utf8(&mut [0; 1]).as_bytes())?,
+                Fragment::Cap(n) => match caps.submatch_text(*n) {
+                    Some(slice) => slice.write_to(w)?,
+                    None => w.write(format!("{{{n}}}").as_bytes())?,
+                },
+                Fragment::Var(from, to) => {
+                    let var = &self.raw[*from..*to];
+                    ctx.render_var(var, w)?
+                }
+            };
+        }
+
+        Ok(n)
+    }
+}
+
+pub trait Context {
+    fn render_var<W>(&self, var: &str, w: &mut W) -> io::Result<usize>
+    where
+        W: Write;
 }
 
 #[cfg(test)]
@@ -294,6 +426,7 @@ mod tests {
         Cap(usize),
         Lit(&'a str),
         Esc(char),
+        Var(&'a str),
     }
 
     use Tag::*;
@@ -305,6 +438,7 @@ mod tests {
                 Fragment::Lit(from, to) => Tag::Lit(&t.raw[*from..*to]),
                 Fragment::Cap(n) => Tag::Cap(*n),
                 Fragment::Esc(ch) => Tag::Esc(*ch),
+                Fragment::Var(from, to) => Tag::Var(&t.raw[*from..*to]),
             })
             .collect()
     }
@@ -320,8 +454,8 @@ mod tests {
         "escape sequences"
     )]
     #[test_case(
-        "foo {1} {2}",
-        &[Lit("foo "), Cap(1), Lit(" "), Cap(2)];
+        "foo {1} {2} {bar}",
+        &[Lit("foo "), Cap(1), Lit(" "), Cap(2), Lit(" "), Var("bar")];
         "variable references"
     )]
     #[test]
@@ -337,6 +471,8 @@ mod tests {
     #[test_case("{1} {2}", "foo bar"; "both submatches")]
     #[test_case("{2} {1}", "bar foo"; "flipped submatches")]
     #[test_case("{1}\\n{2}", "foo\nbar"; "submatches and newline")]
+    #[test_case("{3}", "{3}"; "unknown capture")]
+    #[test_case("{unknown}", "{unknown}"; "variable without context")]
     #[test]
     fn render_works(s: &str, expected: &str) {
         let caps: TaggedCaptures<&str> = TaggedCaptures {
@@ -346,6 +482,36 @@ mod tests {
 
         let t = Template::parse(s).unwrap();
         let rendered = t.render(&caps).unwrap();
+
+        assert_eq!(rendered, expected);
+    }
+
+    #[test_case("just a raw string", "just a raw string"; "raw string")]
+    #[test_case(">{0}<", ">foo bar<"; "full match")]
+    #[test_case("{1} {2}", "foo bar"; "both submatches")]
+    #[test_case("{2} {1}", "bar foo"; "flipped submatches")]
+    #[test_case("{1}\\n{2}", "foo\nbar"; "submatches and newline")]
+    #[test_case("{3}", "{3}"; "unknown capture")]
+    #[test_case("{unknown}", "from context"; "variable without context")]
+    #[test]
+    fn render_with_context_works(s: &str, expected: &str) {
+        let caps: TaggedCaptures<&str> = TaggedCaptures {
+            captures: Captures::new("foo bar", vec![Some((0, 7)), Some((0, 3)), Some((4, 7))]),
+            action: None,
+        };
+
+        struct Ctx;
+        impl Context for Ctx {
+            fn render_var<W>(&self, _: &str, w: &mut W) -> io::Result<usize>
+            where
+                W: Write,
+            {
+                w.write(b"from context")
+            }
+        }
+
+        let t = Template::parse(s).unwrap();
+        let rendered = t.render_with_context(&caps, &Ctx).unwrap();
 
         assert_eq!(rendered, expected);
     }
