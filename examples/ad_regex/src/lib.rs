@@ -211,6 +211,10 @@ mod impl_structex {
         where
             Self: 'h;
 
+        fn char_at(&self, byte_offset: usize) -> Option<char> {
+            self.get_char_at(byte_offset)
+        }
+
         fn slice(&self, range: Range<usize>) -> Self::Slice<'_> {
             self.slice_from_byte_offsets(range.start, range.end)
         }

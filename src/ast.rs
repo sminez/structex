@@ -141,6 +141,7 @@ pub(super) struct Action {
 pub(super) struct Parser<'i, 'c> {
     input: ParseInput<'i>,
     require_actions: bool,
+    allow_top_level_actions: bool,
     allowed_argless_tags: Option<&'c str>,
     allowed_single_arg_tags: Option<&'c str>,
 }
@@ -150,6 +151,7 @@ impl<'i, 'c> Parser<'i, 'c> {
         Self {
             input: ParseInput::new(prog),
             require_actions: false,
+            allow_top_level_actions: false,
             allowed_argless_tags: None,
             allowed_single_arg_tags: None,
         }
@@ -157,6 +159,11 @@ impl<'i, 'c> Parser<'i, 'c> {
 
     pub fn require_actions(mut self, require_actions: bool) -> Self {
         self.require_actions = require_actions;
+        self
+    }
+
+    pub fn allow_top_level_actions(mut self, allow: bool) -> Self {
+        self.allow_top_level_actions = allow;
         self
     }
 
@@ -188,7 +195,9 @@ impl<'i, 'c> Parser<'i, 'c> {
         match seq.nodes.len() {
             0 => Err(self.error(ErrorKind::EmptyExpression)),
             1 => match seq.nodes.remove(0) {
-                Ast::Action(_) => Err(self.error(ErrorKind::TopLevelAction)),
+                Ast::Action(_) if !self.allow_top_level_actions => {
+                    Err(self.error(ErrorKind::TopLevelAction))
+                }
                 Ast::Comment(_) => unreachable!(),
                 node => Ok(node),
             },

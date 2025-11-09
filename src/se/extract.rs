@@ -134,7 +134,11 @@ where
                             self.pos = caps.from();
                             self.held = Some(caps);
                         } else {
-                            self.pos = caps.to();
+                            if self.pos == caps.to() {
+                                self.pos += self.haystack.char_at(self.pos)?.len_utf8();
+                            } else {
+                                self.pos = caps.to();
+                            }
                             self.set_extract(Dot::Captures(caps));
                         }
                     }

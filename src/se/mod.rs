@@ -229,6 +229,7 @@ pub struct StructexBuilder {
     expr: String,
     action_arg_fn: Arc<dyn ActionArgFn>,
     require_actions: bool,
+    allow_top_level_actions: bool,
     allowed_argless_tags: Option<String>,
     allowed_single_arg_tags: Option<String>,
 }
@@ -243,6 +244,7 @@ impl StructexBuilder {
             expr: expr.into(),
             action_arg_fn: Arc::new(newline_and_tab_string),
             require_actions: false,
+            allow_top_level_actions: false,
             allowed_argless_tags: None,
             allowed_single_arg_tags: None,
         }
@@ -319,6 +321,34 @@ impl StructexBuilder {
         self
     }
 
+    /// Allow expressions to consist of only a top level action.
+    ///
+    /// By default it is required for expressions to consist of at least one element before a top
+    /// level action is encountered, as such expressions will always run without making use of the
+    /// Structex engine itself.
+    ///
+    /// # Example
+    /// ```
+    /// use structex::{Structex, StructexBuilder};
+    ///
+    /// let expr = "A";
+    ///
+    /// // By default, top level actions are not permitted.
+    /// assert!(Structex::<regex::Regex>::new(expr).is_err());
+    ///
+    /// // When opting into allowing top level actions, the above expression becomes valid.
+    /// assert!(
+    ///     StructexBuilder::new(expr)
+    ///         .allow_top_level_actions()
+    ///         .build::<regex::Regex>()
+    ///         .is_ok()
+    /// );
+    /// ```
+    pub fn allow_top_level_actions(mut self) -> Self {
+        self.allow_top_level_actions = true;
+        self
+    }
+
     /// This sets the allowed tags when no slash delimited argument is provided.
     ///
     /// By default, all tags are allowed but this may be used to cause a compile error if the input
@@ -383,6 +413,7 @@ impl StructexBuilder {
     {
         let mut c = Compiler {
             require_actions: self.require_actions,
+            allow_top_level_actions: self.allow_top_level_actions,
             allowed_argless_tags: self.allowed_argless_tags,
             allowed_single_arg_tags: self.allowed_single_arg_tags,
             ..Default::default()

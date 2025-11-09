@@ -61,6 +61,9 @@ pub trait Sliceable: Writable + Copy {
     where
         Self: 'h;
 
+    /// Returns the character at the given byte offset if one exists, otherwise None.
+    fn char_at(&self, byte_offset: usize) -> Option<char>;
+
     /// The contiguous sub-section of self that is denoted by the given byte [Range].
     fn slice<'h>(&'h self, range: Range<usize>) -> Self::Slice<'h>;
 
@@ -86,6 +89,14 @@ impl Sliceable for &str {
     where
         Self: 'h;
 
+    fn char_at(&self, byte_offset: usize) -> Option<char> {
+        if byte_offset >= self.len() {
+            return None;
+        }
+
+        self[byte_offset..].chars().next()
+    }
+
     fn slice(&self, range: Range<usize>) -> &str {
         &self[range]
     }
@@ -101,30 +112,6 @@ impl Writable for &str {
         W: io::Write,
     {
         w.write_all(self.as_bytes()).map(|_| self.len())
-    }
-}
-
-impl Sliceable for &[u8] {
-    type Slice<'h>
-        = &'h [u8]
-    where
-        Self: 'h;
-
-    fn slice(&self, range: Range<usize>) -> &[u8] {
-        &self[range]
-    }
-
-    fn max_len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl Writable for &[u8] {
-    fn write_to<W>(&self, w: &mut W) -> io::Result<usize>
-    where
-        W: io::Write,
-    {
-        w.write_all(self).map(|_| self.len())
     }
 }
 
