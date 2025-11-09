@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ErrorKind"],"struct":["Template"],"type":["Error"]};
+window.SIDEBAR_ITEMS = {"enum":["ErrorKind"],"struct":["Template"],"trait":["Context"],"type":["Error"]};

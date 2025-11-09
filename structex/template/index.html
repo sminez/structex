@@ -1,17 +1,19 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Simple template parsing and rendering for use in actions."><title>structex::template - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-e56847b5.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="structex" data-themes="" data-resource-suffix="" data-rustdoc-version="1.91.0 (f8297e351 2025-10-28)" data-channel="1.91.0" data-search-js="search-e256b49e.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../static.files/main-6dc2a7f3.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module template</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../structex/index.html">structex</a><span class="version">0.2.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module template</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#syntax" title="Syntax">Syntax</a><ul><li><a href="#syntax-errors" title="Syntax Errors">Syntax Errors</a></li></ul></li><li><a href="#usage" title="Usage">Usage</a></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#types" title="Type Aliases">Type Aliases</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="../index.html">In crate structex</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">structex</a></div><h1>Module <span>template</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/structex/template.rs.html#1-352">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Simple template parsing and rendering for use in actions.</p>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Simple template parsing and rendering for use in actions."><title>structex::template - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-e56847b5.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="structex" data-themes="" data-resource-suffix="" data-rustdoc-version="1.91.0 (f8297e351 2025-10-28)" data-channel="1.91.0" data-search-js="search-e256b49e.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../static.files/main-6dc2a7f3.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module template</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../structex/index.html">structex</a><span class="version">0.3.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module template</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#syntax" title="Syntax">Syntax</a><ul><li><a href="#syntax-errors" title="Syntax Errors">Syntax Errors</a></li></ul></li><li><a href="#usage" title="Usage">Usage</a></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#traits" title="Traits">Traits</a></li><li><a href="#types" title="Type Aliases">Type Aliases</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="../index.html">In crate structex</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">structex</a></div><h1>Module <span>template</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/structex/template.rs.html#1-518">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Simple template parsing and rendering for use in actions.</p>
 <p>This module provides a simple <a href="struct.Template.html" title="struct structex::template::Template">Template</a> type that can be parsed from the argument string of a
 given <a href="../struct.Action.html" title="struct structex::Action">Action</a> and used for rendering string content based on submatches
 extracted by a <a href="../struct.Structex.html" title="struct structex::Structex">Structex</a>.</p>
 <h2 id="syntax"><a class="doc-anchor" href="#syntax">§</a>Syntax</h2>
-<p>The syntax supported for templating is extremely minimal and focuses solely on injecting
-submatches into a user provided template. In its simplest form a template is simply a string
-literal, but the syntax also supports referencing submatches by their index. To inject the
-contents of a submatch at a particular point within a template, place the capture index inside
-of curly braces: <code>"submatch 1 is {1} and submatch 2 is {2}"</code>.</p>
+<p>The syntax supported for templating is extremely minimal and focuses on injecting submatches
+into a user provided template. In its simplest form a template is simply a string literal, but
+the syntax also supports referencing submatches by their index. To inject the contents of a
+submatch at a particular point within a template, place the capture index inside of curly
+braces: <code>"submatch 1 is {1} and submatch 2 is {2}"</code>. It is also permitted to reference
+arbitrary variables within a template provided they are rendered with either the
+<a href="struct.Template.html#method.render_with_context" title="method structex::template::Template::render_with_context">render_with_context</a> or
+<a href="struct.Template.html#method.render_with_context_to" title="method structex::template::Template::render_with_context_to">render_with_context_to</a> methods.</p>
 <h3 id="syntax-errors"><a class="doc-anchor" href="#syntax-errors">§</a>Syntax Errors</h3>
-<p>It is an error to have an unclosed <code>{}</code> pair within a template or to place something other than
-a capture index inside of curly braces. To escape a curly brace, place a <code>\</code> before the opening
-brace. Closing braces do not need to be escaped.</p>
+<p>It is an error to have an unclosed <code>{}</code> pair within a template. To escape a curly brace, place
+a <code>\</code> before the opening brace. Closing braces do not need to be escaped.</p>
 
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>structex::template::Template;
 
@@ -38,6 +40,9 @@ brace. Closing braces do not need to be escaped.</p>
 <span class="comment">// The same reference multiple times
 </span><span class="macro">assert!</span>(Template::parse(<span class="string">"{1}, {1}!"</span>).is_ok());
 
+<span class="comment">// Something other than a capture index as a reference
+</span><span class="macro">assert!</span>(Template::parse(<span class="string">"{foo}"</span>).is_ok());
+
 
 <span class="comment">// The following are all invalid templates
 
@@ -45,10 +50,7 @@ brace. Closing braces do not need to be escaped.</p>
 </span><span class="macro">assert!</span>(Template::parse(<span class="string">"{1"</span>).is_err());
 
 <span class="comment">// An unknown escape sequence
-</span><span class="macro">assert!</span>(Template::parse(<span class="string">"\\["</span>).is_err());
-
-<span class="comment">// Something other than a capture index as a reference
-</span><span class="macro">assert!</span>(Template::parse(<span class="string">"{foo}"</span>).is_err());</code></pre></div><h2 id="usage"><a class="doc-anchor" href="#usage">§</a>Usage</h2>
+</span><span class="macro">assert!</span>(Template::parse(<span class="string">"\\["</span>).is_err());</code></pre></div><h2 id="usage"><a class="doc-anchor" href="#usage">§</a>Usage</h2>
 <p>To make use of <a href="struct.Template.html" title="struct structex::template::Template">Templates</a> with the rest of this crate, construct your templates from
 the parsed <a href="../struct.Action.html" title="struct structex::Action">Actions</a> returned by a <a href="../struct.Structex.html" title="struct structex::Structex">Structex</a> instance and then
 perform your rendering based on the matches that are yielded from
@@ -94,5 +96,65 @@ Alice is everyone's friend."#</span>;
         <span class="string">"The last word is 'Alice'"</span>,
         <span class="string">"The last word is 'friend'"</span>,
     ]
+);</code></pre></div>
+<p>To render values other than captures from a Structex, implement the <a href="trait.Context.html" title="trait structex::template::Context">Context</a> trait:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>structex::{Structex, template::{Context, Template}};
+<span class="kw">use </span>regex::Regex;
+<span class="kw">use </span>std::io::{<span class="self">self</span>, Write};
+
+<span class="kw">struct </span>Ctx;
+
+<span class="kw">impl </span>Context <span class="kw">for </span>Ctx {
+    <span class="kw">fn </span>render_var&lt;W&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, var: <span class="kw-2">&amp;</span>str, w: <span class="kw-2">&amp;mut </span>W) -&gt; io::Result&lt;usize&gt;
+    <span class="kw">where
+        </span>W: io::Write
+    {
+        <span class="kw">match </span>var {
+            <span class="string">"foo" </span>=&gt; w.write(<span class="string">b"last word"</span>),
+            <span class="string">"bar" </span>=&gt; w.write(<span class="string">b"first word"</span>),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(io::Error::other(<span class="string">"unknown variable"</span>))
+        }
+    }
+}
+
+<span class="kw">let </span>haystack = <span class="string">r#"This is a multi-line
+string that mentions peoples names.
+People like Alice and Bob. People
+like Claire and David, but really
+we're here to talk about Alice.
+Alice is everyone's friend."#</span>;
+
+<span class="kw">let </span>se: Structex&lt;Regex&gt; = Structex::new(<span class="string">r#"
+  x/(.|\n)*?\./ {
+    g/Alice/ n/(\w+)\./ p/The {foo} is '{1}'/;
+    v/Alice/ n/(\w+)/   p/The {bar} is '{1}'/;
+  }
+"#</span>).unwrap();
+
+<span class="comment">// Parse and register the templates
+</span><span class="kw">let </span>templates: Vec&lt;Template&gt; = se
+    .actions()
+    .iter()
+    .map(|action| Template::parse(action.arg().unwrap()).unwrap())
+    .collect();
+
+
+<span class="kw">let </span>output: Vec&lt;String&gt; = se
+    .iter_tagged_captures(haystack)
+    .map(|caps| {
+        <span class="kw">let </span>id = caps.id().unwrap();
+        templates[id].render_with_context(<span class="kw-2">&amp;</span>caps, <span class="kw-2">&amp;</span>Ctx).unwrap()
+    })
+    .collect();
+
+<span class="macro">assert_eq!</span>(
+    <span class="kw-2">&amp;</span>output,
+    <span class="kw-2">&amp;</span>[
+        <span class="string">"The first word is 'This'"</span>,
+        <span class="string">"The last word is 'Bob'"</span>,
+        <span class="string">"The last word is 'Alice'"</span>,
+        <span class="string">"The last word is 'friend'"</span>,
+    ]
 );</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.Template.html" title="struct structex::template::Template">Template</a></dt><dd>A parsed string template that can be rendered for a given <a href="../struct.TaggedCaptures.html" title="struct structex::TaggedCaptures">TaggedCaptures</a>.</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.ErrorKind.html" title="enum structex::template::ErrorKind">Error<wbr>Kind</a></dt><dd>A list specifying the different categories of errors that can be encountered while parsing a
-template.</dd></dl><h2 id="types" class="section-header">Type Aliases<a href="#types" class="anchor">§</a></h2><dl class="item-table"><dt><a class="type" href="type.Error.html" title="type structex::template::Error">Error</a></dt><dd>An error that can arise during template parsing.</dd></dl></section></div></main></body></html>
+template.</dd></dl><h2 id="traits" class="section-header">Traits<a href="#traits" class="anchor">§</a></h2><dl class="item-table"><dt><a class="trait" href="trait.Context.html" title="trait structex::template::Context">Context</a></dt></dl><h2 id="types" class="section-header">Type Aliases<a href="#types" class="anchor">§</a></h2><dl class="item-table"><dt><a class="type" href="type.Error.html" title="type structex::template::Error">Error</a></dt><dd>An error that can arise during template parsing.</dd></dl></section></div></main></body></html>
