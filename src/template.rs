@@ -9,9 +9,10 @@
 //! into a user provided template. In its simplest form a template is simply a string literal, but
 //! the syntax also supports referencing submatches by their index. To inject the contents of a
 //! submatch at a particular point within a template, place the capture index inside of curly
-//! braces: `"submatch 1 is {1} and submatch 2 is {2}"`. It is also permitted to reference
-//! arbitrary variables within a template provided they are rendered with either the
-//! [render_with_context][Template::render_with_context] or
+//! braces: `"submatch 1 is {1} and submatch 2 is {2}"`.
+//!
+//! It is also permitted to reference arbitrary variables within a template provided that template
+//! is rendered with either the [render_with_context][Template::render_with_context] or
 //! [render_with_context_to][Template::render_with_context_to] methods.
 //!
 //! ## Syntax Errors
@@ -109,21 +110,21 @@
 //!
 //! To render values other than captures from a Structex, implement the [Context] trait:
 //! ```
-//! use structex::{Structex, template::{Context, Template}};
+//! use structex::{Structex, template::{Context, RenderError, Template}};
 //! use regex::Regex;
 //! use std::io::{self, Write};
 //!
 //! struct Ctx;
 //!
 //! impl Context for Ctx {
-//!     fn render_var<W>(&self, var: &str, w: &mut W) -> io::Result<usize>
+//!     fn render_var<W>(&self, var: &str, w: &mut W) -> Option<io::Result<usize>>
 //!     where
 //!         W: io::Write
 //!     {
 //!         match var {
-//!             "foo" => w.write(b"last word"),
-//!             "bar" => w.write(b"first word"),
-//!             _ => Err(io::Error::other("unknown variable"))
+//!             "foo" => Some(w.write(b"last word")),
+//!             "bar" => Some(w.write(b"first word")),
+//!             _ => None
 //!         }
 //!     }
 //! }
@@ -168,7 +169,6 @@
 //!     ]
 //! );
 //! ```
-
 use crate::{
     parse::{self, ParseInput},
     re::{Sliceable, Writable},
@@ -190,8 +190,6 @@ pub type Error = parse::Error<ErrorKind>;
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum ErrorKind {
-    /// An invalid variable reference.
-    InvalidVariable(String),
     /// An expected delimiter was not found.
     MissingDelimiter(char),
     /// End of file was encountered before a full expression could be parsed.
@@ -203,10 +201,39 @@ pub enum ErrorKind {
 impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidVariable(s) => write!(f, "expected a capture index, found {s:?}"),
             Self::MissingDelimiter(ch) => write!(f, "missing delimiter '{ch}'"),
             Self::UnknownEscape(ch) => write!(f, "unknown escape sequence '\\{ch}'"),
             Self::UnexpectedEof => write!(f, "unexpected EOF"),
+        }
+    }
+}
+
+/// An error that can occur whilst rendering a [Template].
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum RenderError {
+    /// An IO error occurred during rendering.
+    Io(io::Error),
+    /// An unknown variable reference.
+    UnknownVariable(String),
+}
+
+impl fmt::Display for RenderError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io(e) => write!(f, "{e}"),
+            Self::UnknownVariable(s) => write!(f, "{s:?} is not a known variable"),
+        }
+    }
+}
+
+impl std::error::Error for RenderError {}
+
+impl From<RenderError> for io::Error {
+    fn from(err: RenderError) -> Self {
+        match err {
+            RenderError::Io(e) => e,
+            RenderError::UnknownVariable(_) => io::Error::other(err),
         }
     }
 }
@@ -305,13 +332,37 @@ impl Template {
         })
     }
 
+    /// Returns an iterator over any non capture index variable references present in this
+    /// template in the order they occur.
+    ///
+    /// There is no deduplication or sorting of the variable names.
+    ///
+    /// # Example
+    /// ```
+    /// use structex::template::Template;
+    ///
+    /// let t = Template::parse(
+    ///     "This template uses {foo} and {bar} before using {foo} again."
+    /// ).unwrap();
+    ///
+    /// let vars: Vec<&str> = t.variable_references().collect();
+    /// assert_eq!(&vars, &["foo", "bar", "foo"]);
+    /// ```
+    pub fn variable_references(&self) -> impl Iterator<Item = &str> {
+        self.fragments.iter().flat_map(|frag| match frag {
+            Fragment::Var(from, to) => Some(&self.raw[*from..*to]),
+            _ => None,
+        })
+    }
+
     /// Render this template directly to a newly created [String] using the given [TaggedCaptures].
     ///
-    /// Returns an error if any of the underlying write calls fail.
+    /// Returns an error if any of the underlying write calls fail or if this template contains any
+    /// variables.
     ///
     /// To render to an arbitrary writer instead of a string, see the
     /// [render_to][Template::render_to] method.
-    pub fn render<H>(&self, caps: &TaggedCaptures<H>) -> io::Result<String>
+    pub fn render<H>(&self, caps: &TaggedCaptures<H>) -> Result<String, RenderError>
     where
         H: Sliceable,
     {
@@ -323,10 +374,11 @@ impl Template {
 
     /// Render this template to the provided writer using the given [TaggedCaptures].
     ///
-    /// Returns an error if any of the underlying write calls fail.
+    /// Returns an error if any of the underlying write calls fail or if this template contains any
+    /// variables.
     ///
     /// To render directly to a [String], see the [render][Template::render] method.
-    pub fn render_to<H, W>(&self, w: &mut W, caps: &TaggedCaptures<H>) -> io::Result<usize>
+    pub fn render_to<H, W>(&self, w: &mut W, caps: &TaggedCaptures<H>) -> Result<usize, RenderError>
     where
         H: Sliceable,
         W: Write,
@@ -335,16 +387,26 @@ impl Template {
         for frag in self.fragments.iter() {
             n += match frag {
                 Fragment::Lit(from, to) => {
-                    w.write_all(&self.raw.as_bytes()[*from..*to])?;
+                    w.write_all(&self.raw.as_bytes()[*from..*to])
+                        .map_err(RenderError::Io)?;
                     to - from
                 }
-                Fragment::Esc(ch) => w.write(ch.encode_utf8(&mut [0; 1]).as_bytes())?,
+
+                Fragment::Esc(ch) => w
+                    .write(ch.encode_utf8(&mut [0; 1]).as_bytes())
+                    .map_err(RenderError::Io)?,
+
                 Fragment::Cap(n) => match caps.submatch_text(*n) {
-                    Some(slice) => slice.write_to(w)?,
-                    None => w.write(format!("{{{n}}}").as_bytes())?,
+                    Some(slice) => slice.write_to(w).map_err(RenderError::Io)?,
+                    None => w
+                        .write(format!("{{{n}}}").as_bytes())
+                        .map_err(RenderError::Io)?,
                 },
+
                 Fragment::Var(from, to) => {
-                    w.write(format!("{{{}}}", &self.raw[*from..*to]).as_bytes())?
+                    return Err(RenderError::UnknownVariable(
+                        self.raw[*from..*to].to_string(),
+                    ));
                 }
             };
         }
@@ -359,7 +421,11 @@ impl Template {
     ///
     /// To render to an arbitrary writer instead of a string, see the
     /// [render_to][Template::render_to] method.
-    pub fn render_with_context<H, C>(&self, caps: &TaggedCaptures<H>, ctx: &C) -> io::Result<String>
+    pub fn render_with_context<H, C>(
+        &self,
+        caps: &TaggedCaptures<H>,
+        ctx: &C,
+    ) -> Result<String, RenderError>
     where
         H: Sliceable,
         C: Context,
@@ -380,7 +446,7 @@ impl Template {
         w: &mut W,
         caps: &TaggedCaptures<H>,
         ctx: &C,
-    ) -> io::Result<usize>
+    ) -> Result<usize, RenderError>
     where
         H: Sliceable,
         W: Write,
@@ -390,18 +456,27 @@ impl Template {
         for frag in self.fragments.iter() {
             n += match frag {
                 Fragment::Lit(from, to) => {
-                    w.write_all(&self.raw.as_bytes()[*from..*to])?;
+                    w.write_all(&self.raw.as_bytes()[*from..*to])
+                        .map_err(RenderError::Io)?;
                     to - from
                 }
-                Fragment::Esc(ch) => w.write(ch.encode_utf8(&mut [0; 1]).as_bytes())?,
+                Fragment::Esc(ch) => w
+                    .write(ch.encode_utf8(&mut [0; 1]).as_bytes())
+                    .map_err(RenderError::Io)?,
                 Fragment::Cap(n) => match caps.submatch_text(*n) {
-                    Some(slice) => slice.write_to(w)?,
-                    None => w.write(format!("{{{n}}}").as_bytes())?,
+                    Some(slice) => slice.write_to(w).map_err(RenderError::Io)?,
+                    None => w
+                        .write(format!("{{{n}}}").as_bytes())
+                        .map_err(RenderError::Io)?,
                 },
-                Fragment::Var(from, to) => {
-                    let var = &self.raw[*from..*to];
-                    ctx.render_var(var, w)?
-                }
+                Fragment::Var(from, to) => match ctx.render_var(&self.raw[*from..*to], w) {
+                    Some(res) => res.map_err(RenderError::Io)?,
+                    None => {
+                        return Err(RenderError::UnknownVariable(
+                            self.raw[*from..*to].to_string(),
+                        ));
+                    }
+                },
             };
         }
 
@@ -409,8 +484,20 @@ impl Template {
     }
 }
 
+/// A [Context] is a type that can be passed to a [Template]'s
+/// [render_with_context][Template::render_with_context] or
+/// [render_with_context_to][Template::render_with_context_to] methods in order to resolve and
+/// render variable references beyond [TaggedCaptures] submatch indices.
+///
+/// This trait is used rather than a map in order to support heterogeneous variable types and
+/// dynamic resolution.
 pub trait Context {
-    fn render_var<W>(&self, var: &str, w: &mut W) -> io::Result<usize>
+    /// Attempt to render the given variable name into the provided [Write].
+    ///
+    /// If passed an an unknown variable name, a context should return `None` rather than
+    /// `Some(io::Error)`. Doing so will be mapped to a [RenderError::UnknownVariable] internally
+    /// before returning to the user.
+    fn render_var<W>(&self, var: &str, w: &mut W) -> Option<io::Result<usize>>
     where
         W: Write;
 }
@@ -472,7 +559,6 @@ mod tests {
     #[test_case("{2} {1}", "bar foo"; "flipped submatches")]
     #[test_case("{1}\\n{2}", "foo\nbar"; "submatches and newline")]
     #[test_case("{3}", "{3}"; "unknown capture")]
-    #[test_case("{unknown}", "{unknown}"; "variable without context")]
     #[test]
     fn render_works(s: &str, expected: &str) {
         let caps: TaggedCaptures<&str> = TaggedCaptures {
@@ -484,6 +570,19 @@ mod tests {
         let rendered = t.render(&caps).unwrap();
 
         assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn render_returns_error_for_variables() {
+        let caps: TaggedCaptures<&str> = TaggedCaptures {
+            captures: Captures::new("foo bar", vec![Some((0, 7))]),
+            action: None,
+        };
+
+        let t = Template::parse("{unknown}").unwrap();
+        let err = t.render(&caps).unwrap_err();
+
+        assert!(matches!(err, RenderError::UnknownVariable(s) if s == "unknown"));
     }
 
     #[test_case("just a raw string", "just a raw string"; "raw string")]
@@ -502,11 +601,11 @@ mod tests {
 
         struct Ctx;
         impl Context for Ctx {
-            fn render_var<W>(&self, _: &str, w: &mut W) -> io::Result<usize>
+            fn render_var<W>(&self, _: &str, w: &mut W) -> Option<io::Result<usize>>
             where
                 W: Write,
             {
-                w.write(b"from context")
+                Some(w.write(b"from context"))
             }
         }
 
@@ -514,5 +613,28 @@ mod tests {
         let rendered = t.render_with_context(&caps, &Ctx).unwrap();
 
         assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn render_with_context_returns_error_for_unknown_variables() {
+        let caps: TaggedCaptures<&str> = TaggedCaptures {
+            captures: Captures::new("foo bar", vec![Some((0, 7))]),
+            action: None,
+        };
+
+        struct Ctx;
+        impl Context for Ctx {
+            fn render_var<W>(&self, _: &str, _: &mut W) -> Option<io::Result<usize>>
+            where
+                W: Write,
+            {
+                None
+            }
+        }
+
+        let t = Template::parse("{unknown}").unwrap();
+        let err = t.render_with_context(&caps, &Ctx).unwrap_err();
+
+        assert!(matches!(err, RenderError::UnknownVariable(s) if s == "unknown"));
     }
 }
