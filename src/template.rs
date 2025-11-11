@@ -398,9 +398,7 @@ impl Template {
 
                 Fragment::Cap(n) => match caps.submatch_text(*n) {
                     Some(slice) => slice.write_to(w).map_err(RenderError::Io)?,
-                    None => w
-                        .write(format!("{{{n}}}").as_bytes())
-                        .map_err(RenderError::Io)?,
+                    None => 0, // missing submatches map to an empty string
                 },
 
                 Fragment::Var(from, to) => {
@@ -465,9 +463,7 @@ impl Template {
                     .map_err(RenderError::Io)?,
                 Fragment::Cap(n) => match caps.submatch_text(*n) {
                     Some(slice) => slice.write_to(w).map_err(RenderError::Io)?,
-                    None => w
-                        .write(format!("{{{n}}}").as_bytes())
-                        .map_err(RenderError::Io)?,
+                    None => 0, // missing submatches map to an empty string
                 },
                 Fragment::Var(from, to) => match ctx.render_var(&self.raw[*from..*to], w) {
                     Some(res) => res.map_err(RenderError::Io)?,
@@ -558,7 +554,7 @@ mod tests {
     #[test_case("{1} {2}", "foo bar"; "both submatches")]
     #[test_case("{2} {1}", "bar foo"; "flipped submatches")]
     #[test_case("{1}\\n{2}", "foo\nbar"; "submatches and newline")]
-    #[test_case("{3}", "{3}"; "unknown capture")]
+    #[test_case("{3}", ""; "unknown capture")]
     #[test]
     fn render_works(s: &str, expected: &str) {
         let caps: TaggedCaptures<&str> = TaggedCaptures {
@@ -590,7 +586,7 @@ mod tests {
     #[test_case("{1} {2}", "foo bar"; "both submatches")]
     #[test_case("{2} {1}", "bar foo"; "flipped submatches")]
     #[test_case("{1}\\n{2}", "foo\nbar"; "submatches and newline")]
-    #[test_case("{3}", "{3}"; "unknown capture")]
+    #[test_case("{3}", ""; "unknown capture")]
     #[test_case("{unknown}", "from context"; "variable without context")]
     #[test]
     fn render_with_context_works(s: &str, expected: &str) {
