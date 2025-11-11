@@ -6,6 +6,6 @@ publish = false
 
 [dependencies]
 structex = { path = "../../" }
-ad_regex = { path = "../ad_regex" }
+ad_regex = { path = "../ad_regex", default-features = false }
 anyhow = "1.0.100"
 clap = { version = "4.5.51", features = ["derive"] }
