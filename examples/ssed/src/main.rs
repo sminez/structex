@@ -102,5 +102,9 @@ where
         (after_match)(h, &caps);
     }
 
+    if pos < h.max_len() {
+        h.slice(pos..h.max_len()).write_to(&mut stdout())?;
+    }
+
     Ok(())
 }

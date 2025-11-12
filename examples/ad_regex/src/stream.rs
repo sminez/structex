@@ -263,7 +263,12 @@ mod impl_structex {
         }
 
         fn max_len(&self) -> usize {
-            usize::MAX
+            if self.is_closed() {
+                let inner = self.inner.borrow();
+                inner.cleared_bytes + inner.gb.len()
+            } else {
+                usize::MAX
+            }
         }
     }
 
