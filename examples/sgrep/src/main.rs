@@ -2,7 +2,7 @@ use ad_regex::{CachingStream, Regex};
 use anyhow::Result;
 use clap::Parser;
 use std::{
-    collections::BTreeMap,
+    collections::HashMap,
     fs,
     io::{stdin, stdout},
 };
@@ -36,7 +36,7 @@ fn main() -> Result<()> {
         .require_actions()
         .build()?;
 
-    let mut templates = BTreeMap::new();
+    let mut templates = HashMap::new();
     for action in se.actions() {
         if let Some(arg) = action.arg() {
             let t = Template::parse(arg)?;
@@ -61,15 +61,14 @@ fn main() -> Result<()> {
 fn run_for<H>(
     se: &Structex<Regex>,
     h: H,
-    templates: &BTreeMap<usize, Template>,
+    templates: &HashMap<usize, Template>,
     after_match: impl Fn(H, &TaggedCaptures<H>),
 ) -> Result<()>
 where
     H: Haystack<Regex>,
 {
     for caps in se.iter_tagged_captures(h) {
-        let action = caps.action.as_ref().unwrap();
-        let id = action.id();
+        let id = caps.id().unwrap();
 
         match templates.get(&id) {
             Some(t) => println!("{}", t.render(&caps)?),
