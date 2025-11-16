@@ -425,7 +425,7 @@ impl StructexBuilder {
         } = c;
 
         // Apply the arg mapping function if one was provided and set each action's ID
-        let actions: Vec<_> = actions
+        let actions: Box<[_]> = actions
             .into_iter()
             .enumerate()
             .map(|(id, mut a)| {
@@ -443,8 +443,8 @@ impl StructexBuilder {
                 re: re
                     .into_iter()
                     .map(|re| R::compile(&re).map_err(|e| Error::Regex(Box::new(e))))
-                    .collect::<Result<Vec<_>, _>>()?,
-                tags,
+                    .collect::<Result<_, _>>()?,
+                tags: tags.into_boxed_slice(),
                 actions,
             }),
         })
@@ -456,9 +456,9 @@ where
     R: RegexEngine,
 {
     pub(super) inst: Inst,
-    pub(super) re: Vec<R>,
-    pub(super) tags: Vec<char>,
-    pub(super) actions: Vec<Arc<Action>>,
+    pub(super) re: Box<[R]>,
+    pub(super) tags: Box<[char]>,
+    pub(super) actions: Box<[Arc<Action>]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
