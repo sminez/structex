@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/ast.rs`."><title>ast.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-e56847b5.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="structex" data-themes="" data-resource-suffix="" data-rustdoc-version="1.91.0 (f8297e351 2025-10-28)" data-channel="1.91.0" data-search-js="search-e256b49e.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-6dc2a7f3.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">structex/</div>ast.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="doccomment">//! Ast parsing for structural regular expressions.
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/ast.rs`."><title>ast.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-e56847b5.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="structex" data-themes="" data-resource-suffix="" data-rustdoc-version="1.91.1 (ed61e7d7e 2025-11-07)" data-channel="1.91.1" data-search-js="search-e256b49e.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-6dc2a7f3.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">structex/</div>ast.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="doccomment">//! Ast parsing for structural regular expressions.
 <a href=#2 id=2 data-nosnippet>2</a></span><span class="kw">use </span><span class="kw">crate</span>::parse::{ParseInput, Span};
 <a href=#3 id=3 data-nosnippet>3</a><span class="kw">use </span>std::fmt;
 <a href=#4 id=4 data-nosnippet>4</a>
@@ -253,7 +253,7 @@
 <a href=#253 id=253 data-nosnippet>253</a>            <span class="string">'}' </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::UnexpectedChar(<span class="string">'}'</span>))),
 <a href=#254 id=254 data-nosnippet>254</a>
 <a href=#255 id=255 data-nosnippet>255</a>            <span class="comment">// Default to trying to parse an action
-<a href=#256 id=256 data-nosnippet>256</a>            </span><span class="kw">_ </span>=&gt; Ast::Action(<span class="self">self</span>.parse_action()<span class="question-mark">?</span>),
+<a href=#256 id=256 data-nosnippet>256</a>            </span><span class="kw">_ </span>=&gt; Ast::Action(<span class="self">self</span>.parse_action(in_group)<span class="question-mark">?</span>),
 <a href=#257 id=257 data-nosnippet>257</a>        };
 <a href=#258 id=258 data-nosnippet>258</a>
 <a href=#259 id=259 data-nosnippet>259</a>        <span class="prelude-val">Ok</span>(ast)
@@ -330,309 +330,345 @@
 <a href=#330 id=330 data-nosnippet>330</a>        span.with_end(end)
 <a href=#331 id=331 data-nosnippet>331</a>    }
 <a href=#332 id=332 data-nosnippet>332</a>
-<a href=#333 id=333 data-nosnippet>333</a>    <span class="kw">fn </span>parse_action(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Action, ParseError&gt; {
+<a href=#333 id=333 data-nosnippet>333</a>    <span class="kw">fn </span>parse_action(<span class="kw-2">&amp;</span><span class="self">self</span>, in_group: bool) -&gt; <span class="prelude-ty">Result</span>&lt;Action, ParseError&gt; {
 <a href=#334 id=334 data-nosnippet>334</a>        <span class="kw">let </span>start = <span class="self">self</span>.input.pos();
 <a href=#335 id=335 data-nosnippet>335</a>        <span class="kw">let </span>tag = <span class="self">self</span>.input.char();
 <a href=#336 id=336 data-nosnippet>336</a>        <span class="self">self</span>.input.advance();
 <a href=#337 id=337 data-nosnippet>337</a>
-<a href=#338 id=338 data-nosnippet>338</a>        <span class="kw">let </span>s = <span class="kw">if </span><span class="self">self</span>.input.try_char() == <span class="prelude-val">Some</span>(<span class="string">'/'</span>) {
-<a href=#339 id=339 data-nosnippet>339</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(allowed) = <span class="self">self</span>.allowed_single_arg_tags.as_ref()
-<a href=#340 id=340 data-nosnippet>340</a>                &amp;&amp; !allowed.contains(tag)
-<a href=#341 id=341 data-nosnippet>341</a>            {
-<a href=#342 id=342 data-nosnippet>342</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::UnknownArgumentTag(tag)));
-<a href=#343 id=343 data-nosnippet>343</a>            }
-<a href=#344 id=344 data-nosnippet>344</a>
-<a href=#345 id=345 data-nosnippet>345</a>            <span class="prelude-val">Some</span>(<span class="self">self</span>.parse_delimited_str()<span class="question-mark">?</span>)
-<a href=#346 id=346 data-nosnippet>346</a>        } <span class="kw">else </span>{
-<a href=#347 id=347 data-nosnippet>347</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(allowed) = <span class="self">self</span>.allowed_argless_tags.as_ref()
+<a href=#338 id=338 data-nosnippet>338</a>        <span class="kw">let </span>should_parse_arg = <span class="kw">match </span><span class="self">self</span>.input.try_char() {
+<a href=#339 id=339 data-nosnippet>339</a>            <span class="prelude-val">Some</span>(<span class="string">';'</span>) <span class="kw">if </span>!in_group =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::UnexpectedChar(<span class="string">';'</span>))),
+<a href=#340 id=340 data-nosnippet>340</a>            <span class="prelude-val">Some</span>(<span class="string">';'</span>) =&gt; <span class="bool-val">false</span>,
+<a href=#341 id=341 data-nosnippet>341</a>            <span class="prelude-val">Some</span>(ch) <span class="kw">if </span>ch.is_whitespace() =&gt; <span class="bool-val">false</span>,
+<a href=#342 id=342 data-nosnippet>342</a>            <span class="prelude-val">None </span>=&gt; <span class="bool-val">false</span>,
+<a href=#343 id=343 data-nosnippet>343</a>            <span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; <span class="bool-val">true</span>,
+<a href=#344 id=344 data-nosnippet>344</a>        };
+<a href=#345 id=345 data-nosnippet>345</a>
+<a href=#346 id=346 data-nosnippet>346</a>        <span class="kw">let </span>s = <span class="kw">if </span>should_parse_arg {
+<a href=#347 id=347 data-nosnippet>347</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(allowed) = <span class="self">self</span>.allowed_single_arg_tags.as_ref()
 <a href=#348 id=348 data-nosnippet>348</a>                &amp;&amp; !allowed.contains(tag)
 <a href=#349 id=349 data-nosnippet>349</a>            {
-<a href=#350 id=350 data-nosnippet>350</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::UnknownTag(tag)));
+<a href=#350 id=350 data-nosnippet>350</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::UnknownArgumentTag(tag)));
 <a href=#351 id=351 data-nosnippet>351</a>            }
 <a href=#352 id=352 data-nosnippet>352</a>
-<a href=#353 id=353 data-nosnippet>353</a>            <span class="prelude-val">None
-<a href=#354 id=354 data-nosnippet>354</a>        </span>};
-<a href=#355 id=355 data-nosnippet>355</a>
-<a href=#356 id=356 data-nosnippet>356</a>        <span class="prelude-val">Ok</span>(Action {
-<a href=#357 id=357 data-nosnippet>357</a>            span: <span class="self">self</span>.span().with_start(start),
-<a href=#358 id=358 data-nosnippet>358</a>            tag: <span class="prelude-val">Some</span>(tag),
-<a href=#359 id=359 data-nosnippet>359</a>            s,
-<a href=#360 id=360 data-nosnippet>360</a>        })
-<a href=#361 id=361 data-nosnippet>361</a>    }
-<a href=#362 id=362 data-nosnippet>362</a>
-<a href=#363 id=363 data-nosnippet>363</a>    <span class="kw">fn </span>parse_narrow(<span class="kw-2">&amp;</span><span class="self">self</span>, in_group: bool) -&gt; <span class="prelude-ty">Result</span>&lt;ReNode, ParseError&gt; {
-<a href=#364 id=364 data-nosnippet>364</a>        <span class="macro">assert_eq!</span>(<span class="self">self</span>.input.char(), <span class="string">'n'</span>);
-<a href=#365 id=365 data-nosnippet>365</a>
-<a href=#366 id=366 data-nosnippet>366</a>        <span class="kw">let </span>start = <span class="self">self</span>.input.pos();
-<a href=#367 id=367 data-nosnippet>367</a>        <span class="self">self</span>.input.advance();
-<a href=#368 id=368 data-nosnippet>368</a>        <span class="kw">let </span>re = <span class="self">self</span>.parse_delimited_str()<span class="question-mark">?</span>;
-<a href=#369 id=369 data-nosnippet>369</a>        <span class="kw">let </span>node = Box::new(<span class="self">self</span>.parse1_or_emit_match(in_group)<span class="question-mark">?</span>);
-<a href=#370 id=370 data-nosnippet>370</a>        <span class="kw">let </span>end = node.span().end;
-<a href=#371 id=371 data-nosnippet>371</a>
-<a href=#372 id=372 data-nosnippet>372</a>        <span class="prelude-val">Ok</span>(ReNode {
-<a href=#373 id=373 data-nosnippet>373</a>            span: Span::new(start, end),
-<a href=#374 id=374 data-nosnippet>374</a>            re,
-<a href=#375 id=375 data-nosnippet>375</a>            node,
-<a href=#376 id=376 data-nosnippet>376</a>        })
-<a href=#377 id=377 data-nosnippet>377</a>    }
-<a href=#378 id=378 data-nosnippet>378</a>
-<a href=#379 id=379 data-nosnippet>379</a>    <span class="kw">fn </span>parse_extract(<span class="kw-2">&amp;</span><span class="self">self</span>, in_group: bool) -&gt; <span class="prelude-ty">Result</span>&lt;ReNode, ParseError&gt; {
-<a href=#380 id=380 data-nosnippet>380</a>        <span class="macro">assert!</span>(<span class="string">"xy"</span>.contains(<span class="self">self</span>.input.char()));
-<a href=#381 id=381 data-nosnippet>381</a>
-<a href=#382 id=382 data-nosnippet>382</a>        <span class="kw">let </span>start = <span class="self">self</span>.input.pos();
-<a href=#383 id=383 data-nosnippet>383</a>        <span class="self">self</span>.input.advance();
-<a href=#384 id=384 data-nosnippet>384</a>        <span class="kw">let </span>re = <span class="self">self</span>.parse_delimited_str()<span class="question-mark">?</span>;
-<a href=#385 id=385 data-nosnippet>385</a>        <span class="kw">let </span>node = Box::new(<span class="self">self</span>.parse1_or_emit_match(in_group)<span class="question-mark">?</span>);
-<a href=#386 id=386 data-nosnippet>386</a>        <span class="kw">let </span>end = node.span().end;
-<a href=#387 id=387 data-nosnippet>387</a>
-<a href=#388 id=388 data-nosnippet>388</a>        <span class="prelude-val">Ok</span>(ReNode {
-<a href=#389 id=389 data-nosnippet>389</a>            span: Span::new(start, end),
-<a href=#390 id=390 data-nosnippet>390</a>            re,
-<a href=#391 id=391 data-nosnippet>391</a>            node,
-<a href=#392 id=392 data-nosnippet>392</a>        })
-<a href=#393 id=393 data-nosnippet>393</a>    }
-<a href=#394 id=394 data-nosnippet>394</a>
-<a href=#395 id=395 data-nosnippet>395</a>    <span class="kw">fn </span>parse_guard(<span class="kw-2">&amp;</span><span class="self">self</span>, in_group: bool) -&gt; <span class="prelude-ty">Result</span>&lt;ReNode, ParseError&gt; {
-<a href=#396 id=396 data-nosnippet>396</a>        <span class="macro">assert!</span>(<span class="string">"gv"</span>.contains(<span class="self">self</span>.input.char()));
-<a href=#397 id=397 data-nosnippet>397</a>
-<a href=#398 id=398 data-nosnippet>398</a>        <span class="kw">let </span>start = <span class="self">self</span>.input.pos();
-<a href=#399 id=399 data-nosnippet>399</a>        <span class="self">self</span>.input.advance();
-<a href=#400 id=400 data-nosnippet>400</a>        <span class="kw">let </span>re = <span class="self">self</span>.parse_delimited_str()<span class="question-mark">?</span>;
-<a href=#401 id=401 data-nosnippet>401</a>        <span class="kw">let </span>node = Box::new(<span class="self">self</span>.parse1_or_emit_match(in_group)<span class="question-mark">?</span>);
-<a href=#402 id=402 data-nosnippet>402</a>        <span class="kw">let </span>end = node.span().end;
-<a href=#403 id=403 data-nosnippet>403</a>
-<a href=#404 id=404 data-nosnippet>404</a>        <span class="prelude-val">Ok</span>(ReNode {
-<a href=#405 id=405 data-nosnippet>405</a>            span: Span::new(start, end),
-<a href=#406 id=406 data-nosnippet>406</a>            re,
-<a href=#407 id=407 data-nosnippet>407</a>            node,
-<a href=#408 id=408 data-nosnippet>408</a>        })
-<a href=#409 id=409 data-nosnippet>409</a>    }
-<a href=#410 id=410 data-nosnippet>410</a>
-<a href=#411 id=411 data-nosnippet>411</a>    <span class="kw">fn </span>parse_group(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Sequence, ParseError&gt; {
-<a href=#412 id=412 data-nosnippet>412</a>        <span class="macro">assert_eq!</span>(<span class="self">self</span>.input.char(), <span class="string">'{'</span>);
-<a href=#413 id=413 data-nosnippet>413</a>        <span class="kw">let </span><span class="kw-2">mut </span>seq = Sequence {
-<a href=#414 id=414 data-nosnippet>414</a>            span: <span class="self">self</span>.input.span(),
-<a href=#415 id=415 data-nosnippet>415</a>            nodes: <span class="macro">vec!</span>[],
-<a href=#416 id=416 data-nosnippet>416</a>        };
-<a href=#417 id=417 data-nosnippet>417</a>        <span class="kw">let </span><span class="kw-2">mut </span>branch = Vec::new();
-<a href=#418 id=418 data-nosnippet>418</a>        <span class="self">self</span>.input.advance();
-<a href=#419 id=419 data-nosnippet>419</a>
-<a href=#420 id=420 data-nosnippet>420</a>        <span class="kw">loop </span>{
-<a href=#421 id=421 data-nosnippet>421</a>            <span class="self">self</span>.input.consume_whitespace();
-<a href=#422 id=422 data-nosnippet>422</a>            <span class="kw">match </span><span class="self">self</span>.input.try_char() {
-<a href=#423 id=423 data-nosnippet>423</a>                <span class="prelude-val">Some</span>(<span class="string">'}'</span>) =&gt; {
-<a href=#424 id=424 data-nosnippet>424</a>                    <span class="self">self</span>.input.advance(); <span class="comment">// consume the '}'
-<a href=#425 id=425 data-nosnippet>425</a>
-<a href=#426 id=426 data-nosnippet>426</a>                    </span><span class="kw">return if </span>seq.nodes.is_empty() {
-<a href=#427 id=427 data-nosnippet>427</a>                        <span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::EmptyGroup))
-<a href=#428 id=428 data-nosnippet>428</a>                    } <span class="kw">else </span>{
-<a href=#429 id=429 data-nosnippet>429</a>                        seq.span = seq.span.with_end(<span class="self">self</span>.input.pos());
-<a href=#430 id=430 data-nosnippet>430</a>                        <span class="prelude-val">Ok</span>(seq)
-<a href=#431 id=431 data-nosnippet>431</a>                    };
-<a href=#432 id=432 data-nosnippet>432</a>                }
-<a href=#433 id=433 data-nosnippet>433</a>                <span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; (),
-<a href=#434 id=434 data-nosnippet>434</a>                <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::MissingDelimiter(<span class="string">'}'</span>))),
-<a href=#435 id=435 data-nosnippet>435</a>            }
-<a href=#436 id=436 data-nosnippet>436</a>
-<a href=#437 id=437 data-nosnippet>437</a>            <span class="kw">let </span>node = <span class="self">self</span>.parse1(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
-<a href=#438 id=438 data-nosnippet>438</a>            <span class="kw">if </span>!node.is_comment() {
-<a href=#439 id=439 data-nosnippet>439</a>                branch.push(node);
-<a href=#440 id=440 data-nosnippet>440</a>            }
-<a href=#441 id=441 data-nosnippet>441</a>
-<a href=#442 id=442 data-nosnippet>442</a>            <span class="self">self</span>.input.consume_whitespace();
-<a href=#443 id=443 data-nosnippet>443</a>            <span class="kw">if </span><span class="self">self</span>.input.char() == <span class="string">';' </span>{
-<a href=#444 id=444 data-nosnippet>444</a>                <span class="self">self</span>.input.advance(); <span class="comment">// consume the ';'
-<a href=#445 id=445 data-nosnippet>445</a>
-<a href=#446 id=446 data-nosnippet>446</a>                </span><span class="kw">let </span>node = <span class="kw">match </span>branch.len() {
-<a href=#447 id=447 data-nosnippet>447</a>                    <span class="number">0 </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::EmptyGroupBranch)),
-<a href=#448 id=448 data-nosnippet>448</a>                    <span class="number">1 </span>=&gt; branch.remove(<span class="number">0</span>),
-<a href=#449 id=449 data-nosnippet>449</a>                    <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::MultipleBranches)),
-<a href=#450 id=450 data-nosnippet>450</a>                };
-<a href=#451 id=451 data-nosnippet>451</a>
-<a href=#452 id=452 data-nosnippet>452</a>                seq.nodes.push(node);
-<a href=#453 id=453 data-nosnippet>453</a>                branch = Vec::new();
-<a href=#454 id=454 data-nosnippet>454</a>            }
-<a href=#455 id=455 data-nosnippet>455</a>        }
-<a href=#456 id=456 data-nosnippet>456</a>    }
-<a href=#457 id=457 data-nosnippet>457</a>
-<a href=#458 id=458 data-nosnippet>458</a>    <span class="doccomment">/// Can't use ParseInput::read_until for this (or return &amp;str) as we need to handle
-<a href=#459 id=459 data-nosnippet>459</a>    /// escaping the delimiter inside of the string.
-<a href=#460 id=460 data-nosnippet>460</a>    </span><span class="kw">fn </span>parse_delimited_str(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, ParseError&gt; {
-<a href=#461 id=461 data-nosnippet>461</a>        <span class="kw">if </span><span class="self">self</span>.input.try_char() != <span class="prelude-val">Some</span>(<span class="string">'/'</span>) {
-<a href=#462 id=462 data-nosnippet>462</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::MissingDelimiter(<span class="string">'/'</span>)));
-<a href=#463 id=463 data-nosnippet>463</a>        } <span class="kw">else if </span>!<span class="self">self</span>.input.advance() {
-<a href=#464 id=464 data-nosnippet>464</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::UnexpectedEof));
-<a href=#465 id=465 data-nosnippet>465</a>        }
-<a href=#466 id=466 data-nosnippet>466</a>
-<a href=#467 id=467 data-nosnippet>467</a>        <span class="kw">let </span><span class="kw-2">mut </span>s = String::new();
-<a href=#468 id=468 data-nosnippet>468</a>        <span class="kw">let </span><span class="kw-2">mut </span>prev = <span class="string">'/'</span>;
-<a href=#469 id=469 data-nosnippet>469</a>
-<a href=#470 id=470 data-nosnippet>470</a>        <span class="kw">while </span>!<span class="self">self</span>.input.at_eof() {
-<a href=#471 id=471 data-nosnippet>471</a>            <span class="kw">let </span>ch = <span class="self">self</span>.input.char();
-<a href=#472 id=472 data-nosnippet>472</a>            <span class="kw">if </span>ch == <span class="string">'/' </span>{
-<a href=#473 id=473 data-nosnippet>473</a>                <span class="kw">if </span>prev == <span class="string">'\\' </span>{
-<a href=#474 id=474 data-nosnippet>474</a>                    s.push(ch);
-<a href=#475 id=475 data-nosnippet>475</a>                } <span class="kw">else </span>{
-<a href=#476 id=476 data-nosnippet>476</a>                    <span class="self">self</span>.input.advance(); <span class="comment">// consume the delimiter
-<a href=#477 id=477 data-nosnippet>477</a>                    </span><span class="kw">return </span><span class="prelude-val">Ok</span>(s);
-<a href=#478 id=478 data-nosnippet>478</a>                }
-<a href=#479 id=479 data-nosnippet>479</a>            } <span class="kw">else </span>{
-<a href=#480 id=480 data-nosnippet>480</a>                <span class="kw">if </span>prev == <span class="string">'\\' </span>{
-<a href=#481 id=481 data-nosnippet>481</a>                    s.push(<span class="string">'\\'</span>);
-<a href=#482 id=482 data-nosnippet>482</a>                }
-<a href=#483 id=483 data-nosnippet>483</a>                <span class="kw">if </span>ch != <span class="string">'\\' </span>{
-<a href=#484 id=484 data-nosnippet>484</a>                    s.push(ch);
-<a href=#485 id=485 data-nosnippet>485</a>                }
-<a href=#486 id=486 data-nosnippet>486</a>            }
-<a href=#487 id=487 data-nosnippet>487</a>            prev = ch;
-<a href=#488 id=488 data-nosnippet>488</a>            <span class="self">self</span>.input.advance();
-<a href=#489 id=489 data-nosnippet>489</a>        }
-<a href=#490 id=490 data-nosnippet>490</a>
-<a href=#491 id=491 data-nosnippet>491</a>        <span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::MissingDelimiter(<span class="string">'/'</span>)))
-<a href=#492 id=492 data-nosnippet>492</a>    }
-<a href=#493 id=493 data-nosnippet>493</a>}
-<a href=#494 id=494 data-nosnippet>494</a>
-<a href=#495 id=495 data-nosnippet>495</a><span class="attr">#[cfg(test)]
-<a href=#496 id=496 data-nosnippet>496</a></span><span class="kw">mod </span>tests {
-<a href=#497 id=497 data-nosnippet>497</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
-<a href=#498 id=498 data-nosnippet>498</a>    <span class="kw">use </span><span class="kw">crate</span>::parse::Position;
-<a href=#499 id=499 data-nosnippet>499</a>    <span class="kw">use </span>simple_test_case::test_case;
-<a href=#500 id=500 data-nosnippet>500</a>
-<a href=#501 id=501 data-nosnippet>501</a>    <span class="kw">fn </span>span(start: (usize, usize, usize), end: (usize, usize, usize)) -&gt; Span {
-<a href=#502 id=502 data-nosnippet>502</a>        Span::new(
-<a href=#503 id=503 data-nosnippet>503</a>            Position::new(start.<span class="number">0</span>, start.<span class="number">1</span>, start.<span class="number">2</span>),
-<a href=#504 id=504 data-nosnippet>504</a>            Position::new(end.<span class="number">0</span>, end.<span class="number">1</span>, end.<span class="number">2</span>),
-<a href=#505 id=505 data-nosnippet>505</a>        )
-<a href=#506 id=506 data-nosnippet>506</a>    }
-<a href=#507 id=507 data-nosnippet>507</a>
-<a href=#508 id=508 data-nosnippet>508</a>    <span class="kw">fn </span>action(tag: char, span: Span) -&gt; Ast {
-<a href=#509 id=509 data-nosnippet>509</a>        Ast::Action(Action {
-<a href=#510 id=510 data-nosnippet>510</a>            span,
-<a href=#511 id=511 data-nosnippet>511</a>            tag: <span class="prelude-val">Some</span>(tag),
-<a href=#512 id=512 data-nosnippet>512</a>            s: <span class="prelude-val">None</span>,
-<a href=#513 id=513 data-nosnippet>513</a>        })
-<a href=#514 id=514 data-nosnippet>514</a>    }
-<a href=#515 id=515 data-nosnippet>515</a>
-<a href=#516 id=516 data-nosnippet>516</a>    <span class="kw">fn </span>template_action(tag: char, s: <span class="kw-2">&amp;</span>str, span: Span) -&gt; Ast {
-<a href=#517 id=517 data-nosnippet>517</a>        Ast::Action(Action {
-<a href=#518 id=518 data-nosnippet>518</a>            span,
-<a href=#519 id=519 data-nosnippet>519</a>            tag: <span class="prelude-val">Some</span>(tag),
-<a href=#520 id=520 data-nosnippet>520</a>            s: <span class="prelude-val">Some</span>(s.to_string()),
-<a href=#521 id=521 data-nosnippet>521</a>        })
-<a href=#522 id=522 data-nosnippet>522</a>    }
-<a href=#523 id=523 data-nosnippet>523</a>
-<a href=#524 id=524 data-nosnippet>524</a>    <span class="attr">#[test]
-<a href=#525 id=525 data-nosnippet>525</a>    </span><span class="kw">fn </span>parse_action_returns_correct_span() {
-<a href=#526 id=526 data-nosnippet>526</a>        <span class="kw">let </span>p = Parser::new(<span class="string">"c/bar/  # comment"</span>);
-<a href=#527 id=527 data-nosnippet>527</a>        <span class="kw">let </span>action = p.parse_action().unwrap();
-<a href=#528 id=528 data-nosnippet>528</a>
-<a href=#529 id=529 data-nosnippet>529</a>        <span class="macro">assert_eq!</span>(action.tag, <span class="prelude-val">Some</span>(<span class="string">'c'</span>));
-<a href=#530 id=530 data-nosnippet>530</a>
-<a href=#531 id=531 data-nosnippet>531</a>        <span class="kw">let </span>substr = p.input.span_text(<span class="kw-2">&amp;</span>action.span);
-<a href=#532 id=532 data-nosnippet>532</a>        <span class="macro">assert_eq!</span>(substr, <span class="string">"c/bar/"</span>);
-<a href=#533 id=533 data-nosnippet>533</a>    }
-<a href=#534 id=534 data-nosnippet>534</a>
-<a href=#535 id=535 data-nosnippet>535</a>    <span class="attr">#[test]
-<a href=#536 id=536 data-nosnippet>536</a>    </span><span class="kw">fn </span>parse_action_returns_correct_span_without_a_template() {
-<a href=#537 id=537 data-nosnippet>537</a>        <span class="kw">let </span>p = Parser::new(<span class="string">"a # comment"</span>);
-<a href=#538 id=538 data-nosnippet>538</a>        <span class="kw">let </span>action = p.parse_action().unwrap();
-<a href=#539 id=539 data-nosnippet>539</a>
-<a href=#540 id=540 data-nosnippet>540</a>        <span class="macro">assert_eq!</span>(action.tag, <span class="prelude-val">Some</span>(<span class="string">'a'</span>));
-<a href=#541 id=541 data-nosnippet>541</a>
-<a href=#542 id=542 data-nosnippet>542</a>        <span class="kw">let </span>substr = p.input.span_text(<span class="kw-2">&amp;</span>action.span);
-<a href=#543 id=543 data-nosnippet>543</a>        <span class="macro">assert_eq!</span>(substr, <span class="string">"a"</span>);
-<a href=#544 id=544 data-nosnippet>544</a>    }
-<a href=#545 id=545 data-nosnippet>545</a>
-<a href=#546 id=546 data-nosnippet>546</a>    <span class="attr">#[test]
-<a href=#547 id=547 data-nosnippet>547</a>    </span><span class="kw">fn </span>parse_extract_returns_correct_span() {
-<a href=#548 id=548 data-nosnippet>548</a>        <span class="kw">let </span>p = Parser::new(<span class="string">"x/foo/ a/baz/  # comment"</span>);
-<a href=#549 id=549 data-nosnippet>549</a>        <span class="kw">let </span>extract = p.parse_extract(<span class="bool-val">false</span>).unwrap();
-<a href=#550 id=550 data-nosnippet>550</a>        <span class="kw">let </span>substr = p.input.span_text(<span class="kw-2">&amp;</span>extract.span);
+<a href=#353 id=353 data-nosnippet>353</a>            <span class="prelude-val">Some</span>(<span class="self">self</span>.parse_delimited_str()<span class="question-mark">?</span>)
+<a href=#354 id=354 data-nosnippet>354</a>        } <span class="kw">else </span>{
+<a href=#355 id=355 data-nosnippet>355</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(allowed) = <span class="self">self</span>.allowed_argless_tags.as_ref()
+<a href=#356 id=356 data-nosnippet>356</a>                &amp;&amp; !allowed.contains(tag)
+<a href=#357 id=357 data-nosnippet>357</a>            {
+<a href=#358 id=358 data-nosnippet>358</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::UnknownTag(tag)));
+<a href=#359 id=359 data-nosnippet>359</a>            }
+<a href=#360 id=360 data-nosnippet>360</a>
+<a href=#361 id=361 data-nosnippet>361</a>            <span class="prelude-val">None
+<a href=#362 id=362 data-nosnippet>362</a>        </span>};
+<a href=#363 id=363 data-nosnippet>363</a>
+<a href=#364 id=364 data-nosnippet>364</a>        <span class="prelude-val">Ok</span>(Action {
+<a href=#365 id=365 data-nosnippet>365</a>            span: <span class="self">self</span>.span().with_start(start),
+<a href=#366 id=366 data-nosnippet>366</a>            tag: <span class="prelude-val">Some</span>(tag),
+<a href=#367 id=367 data-nosnippet>367</a>            s,
+<a href=#368 id=368 data-nosnippet>368</a>        })
+<a href=#369 id=369 data-nosnippet>369</a>    }
+<a href=#370 id=370 data-nosnippet>370</a>
+<a href=#371 id=371 data-nosnippet>371</a>    <span class="kw">fn </span>parse_narrow(<span class="kw-2">&amp;</span><span class="self">self</span>, in_group: bool) -&gt; <span class="prelude-ty">Result</span>&lt;ReNode, ParseError&gt; {
+<a href=#372 id=372 data-nosnippet>372</a>        <span class="macro">assert_eq!</span>(<span class="self">self</span>.input.char(), <span class="string">'n'</span>);
+<a href=#373 id=373 data-nosnippet>373</a>
+<a href=#374 id=374 data-nosnippet>374</a>        <span class="kw">let </span>start = <span class="self">self</span>.input.pos();
+<a href=#375 id=375 data-nosnippet>375</a>        <span class="self">self</span>.input.advance();
+<a href=#376 id=376 data-nosnippet>376</a>        <span class="kw">let </span>re = <span class="self">self</span>.parse_delimited_str()<span class="question-mark">?</span>;
+<a href=#377 id=377 data-nosnippet>377</a>        <span class="kw">let </span>node = Box::new(<span class="self">self</span>.parse1_or_emit_match(in_group)<span class="question-mark">?</span>);
+<a href=#378 id=378 data-nosnippet>378</a>        <span class="kw">let </span>end = node.span().end;
+<a href=#379 id=379 data-nosnippet>379</a>
+<a href=#380 id=380 data-nosnippet>380</a>        <span class="prelude-val">Ok</span>(ReNode {
+<a href=#381 id=381 data-nosnippet>381</a>            span: Span::new(start, end),
+<a href=#382 id=382 data-nosnippet>382</a>            re,
+<a href=#383 id=383 data-nosnippet>383</a>            node,
+<a href=#384 id=384 data-nosnippet>384</a>        })
+<a href=#385 id=385 data-nosnippet>385</a>    }
+<a href=#386 id=386 data-nosnippet>386</a>
+<a href=#387 id=387 data-nosnippet>387</a>    <span class="kw">fn </span>parse_extract(<span class="kw-2">&amp;</span><span class="self">self</span>, in_group: bool) -&gt; <span class="prelude-ty">Result</span>&lt;ReNode, ParseError&gt; {
+<a href=#388 id=388 data-nosnippet>388</a>        <span class="macro">assert!</span>(<span class="string">"xy"</span>.contains(<span class="self">self</span>.input.char()));
+<a href=#389 id=389 data-nosnippet>389</a>
+<a href=#390 id=390 data-nosnippet>390</a>        <span class="kw">let </span>start = <span class="self">self</span>.input.pos();
+<a href=#391 id=391 data-nosnippet>391</a>        <span class="self">self</span>.input.advance();
+<a href=#392 id=392 data-nosnippet>392</a>        <span class="kw">let </span>re = <span class="self">self</span>.parse_delimited_str()<span class="question-mark">?</span>;
+<a href=#393 id=393 data-nosnippet>393</a>        <span class="kw">let </span>node = Box::new(<span class="self">self</span>.parse1_or_emit_match(in_group)<span class="question-mark">?</span>);
+<a href=#394 id=394 data-nosnippet>394</a>        <span class="kw">let </span>end = node.span().end;
+<a href=#395 id=395 data-nosnippet>395</a>
+<a href=#396 id=396 data-nosnippet>396</a>        <span class="prelude-val">Ok</span>(ReNode {
+<a href=#397 id=397 data-nosnippet>397</a>            span: Span::new(start, end),
+<a href=#398 id=398 data-nosnippet>398</a>            re,
+<a href=#399 id=399 data-nosnippet>399</a>            node,
+<a href=#400 id=400 data-nosnippet>400</a>        })
+<a href=#401 id=401 data-nosnippet>401</a>    }
+<a href=#402 id=402 data-nosnippet>402</a>
+<a href=#403 id=403 data-nosnippet>403</a>    <span class="kw">fn </span>parse_guard(<span class="kw-2">&amp;</span><span class="self">self</span>, in_group: bool) -&gt; <span class="prelude-ty">Result</span>&lt;ReNode, ParseError&gt; {
+<a href=#404 id=404 data-nosnippet>404</a>        <span class="macro">assert!</span>(<span class="string">"gv"</span>.contains(<span class="self">self</span>.input.char()));
+<a href=#405 id=405 data-nosnippet>405</a>
+<a href=#406 id=406 data-nosnippet>406</a>        <span class="kw">let </span>start = <span class="self">self</span>.input.pos();
+<a href=#407 id=407 data-nosnippet>407</a>        <span class="self">self</span>.input.advance();
+<a href=#408 id=408 data-nosnippet>408</a>        <span class="kw">let </span>re = <span class="self">self</span>.parse_delimited_str()<span class="question-mark">?</span>;
+<a href=#409 id=409 data-nosnippet>409</a>        <span class="kw">let </span>node = Box::new(<span class="self">self</span>.parse1_or_emit_match(in_group)<span class="question-mark">?</span>);
+<a href=#410 id=410 data-nosnippet>410</a>        <span class="kw">let </span>end = node.span().end;
+<a href=#411 id=411 data-nosnippet>411</a>
+<a href=#412 id=412 data-nosnippet>412</a>        <span class="prelude-val">Ok</span>(ReNode {
+<a href=#413 id=413 data-nosnippet>413</a>            span: Span::new(start, end),
+<a href=#414 id=414 data-nosnippet>414</a>            re,
+<a href=#415 id=415 data-nosnippet>415</a>            node,
+<a href=#416 id=416 data-nosnippet>416</a>        })
+<a href=#417 id=417 data-nosnippet>417</a>    }
+<a href=#418 id=418 data-nosnippet>418</a>
+<a href=#419 id=419 data-nosnippet>419</a>    <span class="kw">fn </span>parse_group(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Sequence, ParseError&gt; {
+<a href=#420 id=420 data-nosnippet>420</a>        <span class="macro">assert_eq!</span>(<span class="self">self</span>.input.char(), <span class="string">'{'</span>);
+<a href=#421 id=421 data-nosnippet>421</a>        <span class="kw">let </span><span class="kw-2">mut </span>seq = Sequence {
+<a href=#422 id=422 data-nosnippet>422</a>            span: <span class="self">self</span>.input.span(),
+<a href=#423 id=423 data-nosnippet>423</a>            nodes: <span class="macro">vec!</span>[],
+<a href=#424 id=424 data-nosnippet>424</a>        };
+<a href=#425 id=425 data-nosnippet>425</a>        <span class="kw">let </span><span class="kw-2">mut </span>branch = Vec::new();
+<a href=#426 id=426 data-nosnippet>426</a>        <span class="self">self</span>.input.advance();
+<a href=#427 id=427 data-nosnippet>427</a>
+<a href=#428 id=428 data-nosnippet>428</a>        <span class="kw">loop </span>{
+<a href=#429 id=429 data-nosnippet>429</a>            <span class="self">self</span>.input.consume_whitespace();
+<a href=#430 id=430 data-nosnippet>430</a>            <span class="kw">match </span><span class="self">self</span>.input.try_char() {
+<a href=#431 id=431 data-nosnippet>431</a>                <span class="prelude-val">Some</span>(<span class="string">'}'</span>) =&gt; {
+<a href=#432 id=432 data-nosnippet>432</a>                    <span class="self">self</span>.input.advance(); <span class="comment">// consume the '}'
+<a href=#433 id=433 data-nosnippet>433</a>
+<a href=#434 id=434 data-nosnippet>434</a>                    </span><span class="kw">return if </span>seq.nodes.is_empty() {
+<a href=#435 id=435 data-nosnippet>435</a>                        <span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::EmptyGroup))
+<a href=#436 id=436 data-nosnippet>436</a>                    } <span class="kw">else </span>{
+<a href=#437 id=437 data-nosnippet>437</a>                        seq.span = seq.span.with_end(<span class="self">self</span>.input.pos());
+<a href=#438 id=438 data-nosnippet>438</a>                        <span class="prelude-val">Ok</span>(seq)
+<a href=#439 id=439 data-nosnippet>439</a>                    };
+<a href=#440 id=440 data-nosnippet>440</a>                }
+<a href=#441 id=441 data-nosnippet>441</a>                <span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; (),
+<a href=#442 id=442 data-nosnippet>442</a>                <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::MissingDelimiter(<span class="string">'}'</span>))),
+<a href=#443 id=443 data-nosnippet>443</a>            }
+<a href=#444 id=444 data-nosnippet>444</a>
+<a href=#445 id=445 data-nosnippet>445</a>            <span class="kw">let </span>node = <span class="self">self</span>.parse1(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
+<a href=#446 id=446 data-nosnippet>446</a>            <span class="kw">if </span>!node.is_comment() {
+<a href=#447 id=447 data-nosnippet>447</a>                branch.push(node);
+<a href=#448 id=448 data-nosnippet>448</a>            }
+<a href=#449 id=449 data-nosnippet>449</a>
+<a href=#450 id=450 data-nosnippet>450</a>            <span class="self">self</span>.input.consume_whitespace();
+<a href=#451 id=451 data-nosnippet>451</a>            <span class="kw">if </span><span class="self">self</span>.input.char() == <span class="string">';' </span>{
+<a href=#452 id=452 data-nosnippet>452</a>                <span class="self">self</span>.input.advance(); <span class="comment">// consume the ';'
+<a href=#453 id=453 data-nosnippet>453</a>
+<a href=#454 id=454 data-nosnippet>454</a>                </span><span class="kw">let </span>node = <span class="kw">match </span>branch.len() {
+<a href=#455 id=455 data-nosnippet>455</a>                    <span class="number">0 </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::EmptyGroupBranch)),
+<a href=#456 id=456 data-nosnippet>456</a>                    <span class="number">1 </span>=&gt; branch.remove(<span class="number">0</span>),
+<a href=#457 id=457 data-nosnippet>457</a>                    <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::MultipleBranches)),
+<a href=#458 id=458 data-nosnippet>458</a>                };
+<a href=#459 id=459 data-nosnippet>459</a>
+<a href=#460 id=460 data-nosnippet>460</a>                seq.nodes.push(node);
+<a href=#461 id=461 data-nosnippet>461</a>                branch = Vec::new();
+<a href=#462 id=462 data-nosnippet>462</a>            }
+<a href=#463 id=463 data-nosnippet>463</a>        }
+<a href=#464 id=464 data-nosnippet>464</a>    }
+<a href=#465 id=465 data-nosnippet>465</a>
+<a href=#466 id=466 data-nosnippet>466</a>    <span class="doccomment">/// Can't use ParseInput::read_until for this (or return &amp;str) as we need to handle
+<a href=#467 id=467 data-nosnippet>467</a>    /// escaping the delimiter inside of the string.
+<a href=#468 id=468 data-nosnippet>468</a>    </span><span class="kw">fn </span>parse_delimited_str(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, ParseError&gt; {
+<a href=#469 id=469 data-nosnippet>469</a>        <span class="kw">let </span>delim = <span class="kw">match </span><span class="self">self</span>.input.try_char() {
+<a href=#470 id=470 data-nosnippet>470</a>            <span class="prelude-val">Some</span>(<span class="string">';'</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::UnexpectedChar(<span class="string">';'</span>))),
+<a href=#471 id=471 data-nosnippet>471</a>            <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::UnexpectedEof)),
+<a href=#472 id=472 data-nosnippet>472</a>            <span class="prelude-val">Some</span>(ch) =&gt; ch,
+<a href=#473 id=473 data-nosnippet>473</a>        };
+<a href=#474 id=474 data-nosnippet>474</a>
+<a href=#475 id=475 data-nosnippet>475</a>        <span class="kw">if </span>!<span class="self">self</span>.input.advance() {
+<a href=#476 id=476 data-nosnippet>476</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::UnexpectedEof));
+<a href=#477 id=477 data-nosnippet>477</a>        }
+<a href=#478 id=478 data-nosnippet>478</a>
+<a href=#479 id=479 data-nosnippet>479</a>        <span class="kw">let </span><span class="kw-2">mut </span>s = String::new();
+<a href=#480 id=480 data-nosnippet>480</a>        <span class="kw">let </span><span class="kw-2">mut </span>prev = delim;
+<a href=#481 id=481 data-nosnippet>481</a>
+<a href=#482 id=482 data-nosnippet>482</a>        <span class="kw">while </span>!<span class="self">self</span>.input.at_eof() {
+<a href=#483 id=483 data-nosnippet>483</a>            <span class="kw">let </span>ch = <span class="self">self</span>.input.char();
+<a href=#484 id=484 data-nosnippet>484</a>            <span class="kw">if </span>ch == delim {
+<a href=#485 id=485 data-nosnippet>485</a>                <span class="kw">if </span>prev == <span class="string">'\\' </span>{
+<a href=#486 id=486 data-nosnippet>486</a>                    s.push(ch);
+<a href=#487 id=487 data-nosnippet>487</a>                } <span class="kw">else </span>{
+<a href=#488 id=488 data-nosnippet>488</a>                    <span class="self">self</span>.input.advance(); <span class="comment">// consume the delimiter
+<a href=#489 id=489 data-nosnippet>489</a>                    </span><span class="kw">return </span><span class="prelude-val">Ok</span>(s);
+<a href=#490 id=490 data-nosnippet>490</a>                }
+<a href=#491 id=491 data-nosnippet>491</a>            } <span class="kw">else </span>{
+<a href=#492 id=492 data-nosnippet>492</a>                <span class="kw">if </span>prev == <span class="string">'\\' </span>{
+<a href=#493 id=493 data-nosnippet>493</a>                    s.push(<span class="string">'\\'</span>);
+<a href=#494 id=494 data-nosnippet>494</a>                }
+<a href=#495 id=495 data-nosnippet>495</a>                <span class="kw">if </span>ch != <span class="string">'\\' </span>{
+<a href=#496 id=496 data-nosnippet>496</a>                    s.push(ch);
+<a href=#497 id=497 data-nosnippet>497</a>                }
+<a href=#498 id=498 data-nosnippet>498</a>            }
+<a href=#499 id=499 data-nosnippet>499</a>            prev = ch;
+<a href=#500 id=500 data-nosnippet>500</a>            <span class="self">self</span>.input.advance();
+<a href=#501 id=501 data-nosnippet>501</a>        }
+<a href=#502 id=502 data-nosnippet>502</a>
+<a href=#503 id=503 data-nosnippet>503</a>        <span class="prelude-val">Err</span>(<span class="self">self</span>.error(ErrorKind::MissingDelimiter(delim)))
+<a href=#504 id=504 data-nosnippet>504</a>    }
+<a href=#505 id=505 data-nosnippet>505</a>}
+<a href=#506 id=506 data-nosnippet>506</a>
+<a href=#507 id=507 data-nosnippet>507</a><span class="attr">#[cfg(test)]
+<a href=#508 id=508 data-nosnippet>508</a></span><span class="kw">mod </span>tests {
+<a href=#509 id=509 data-nosnippet>509</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#510 id=510 data-nosnippet>510</a>    <span class="kw">use </span><span class="kw">crate</span>::parse::Position;
+<a href=#511 id=511 data-nosnippet>511</a>    <span class="kw">use </span>simple_test_case::test_case;
+<a href=#512 id=512 data-nosnippet>512</a>
+<a href=#513 id=513 data-nosnippet>513</a>    <span class="kw">fn </span>span(start: (usize, usize, usize), end: (usize, usize, usize)) -&gt; Span {
+<a href=#514 id=514 data-nosnippet>514</a>        Span::new(
+<a href=#515 id=515 data-nosnippet>515</a>            Position::new(start.<span class="number">0</span>, start.<span class="number">1</span>, start.<span class="number">2</span>),
+<a href=#516 id=516 data-nosnippet>516</a>            Position::new(end.<span class="number">0</span>, end.<span class="number">1</span>, end.<span class="number">2</span>),
+<a href=#517 id=517 data-nosnippet>517</a>        )
+<a href=#518 id=518 data-nosnippet>518</a>    }
+<a href=#519 id=519 data-nosnippet>519</a>
+<a href=#520 id=520 data-nosnippet>520</a>    <span class="kw">fn </span>action(tag: char, span: Span) -&gt; Ast {
+<a href=#521 id=521 data-nosnippet>521</a>        Ast::Action(Action {
+<a href=#522 id=522 data-nosnippet>522</a>            span,
+<a href=#523 id=523 data-nosnippet>523</a>            tag: <span class="prelude-val">Some</span>(tag),
+<a href=#524 id=524 data-nosnippet>524</a>            s: <span class="prelude-val">None</span>,
+<a href=#525 id=525 data-nosnippet>525</a>        })
+<a href=#526 id=526 data-nosnippet>526</a>    }
+<a href=#527 id=527 data-nosnippet>527</a>
+<a href=#528 id=528 data-nosnippet>528</a>    <span class="kw">fn </span>template_action(tag: char, s: <span class="kw-2">&amp;</span>str, span: Span) -&gt; Ast {
+<a href=#529 id=529 data-nosnippet>529</a>        Ast::Action(Action {
+<a href=#530 id=530 data-nosnippet>530</a>            span,
+<a href=#531 id=531 data-nosnippet>531</a>            tag: <span class="prelude-val">Some</span>(tag),
+<a href=#532 id=532 data-nosnippet>532</a>            s: <span class="prelude-val">Some</span>(s.to_string()),
+<a href=#533 id=533 data-nosnippet>533</a>        })
+<a href=#534 id=534 data-nosnippet>534</a>    }
+<a href=#535 id=535 data-nosnippet>535</a>
+<a href=#536 id=536 data-nosnippet>536</a>    <span class="attr">#[test_case(<span class="string">"/foo/"</span>, <span class="string">"foo"</span>; <span class="string">"slash"</span>)]
+<a href=#537 id=537 data-nosnippet>537</a>    #[test_case(<span class="string">r"/foo\/bar/"</span>, <span class="string">"foo/bar"</span>; <span class="string">"slash with escape"</span>)]
+<a href=#538 id=538 data-nosnippet>538</a>    #[test_case(<span class="string">":foo:"</span>, <span class="string">"foo"</span>; <span class="string">"colon"</span>)]
+<a href=#539 id=539 data-nosnippet>539</a>    #[test_case(<span class="string">r":foo\:bar:"</span>, <span class="string">"foo:bar"</span>; <span class="string">"colon with escape"</span>)]
+<a href=#540 id=540 data-nosnippet>540</a>    #[test_case(<span class="string">".foo."</span>, <span class="string">"foo"</span>; <span class="string">"period"</span>)]
+<a href=#541 id=541 data-nosnippet>541</a>    #[test_case(<span class="string">r".foo\.bar."</span>, <span class="string">"foo.bar"</span>; <span class="string">"period with escape"</span>)]
+<a href=#542 id=542 data-nosnippet>542</a>    #[test_case(<span class="string">"|foo|"</span>, <span class="string">"foo"</span>; <span class="string">"pipe"</span>)]
+<a href=#543 id=543 data-nosnippet>543</a>    #[test_case(<span class="string">r"|foo\|bar|"</span>, <span class="string">"foo|bar"</span>; <span class="string">"pipe with escape"</span>)]
+<a href=#544 id=544 data-nosnippet>544</a>    #[test]
+<a href=#545 id=545 data-nosnippet>545</a>    </span><span class="kw">fn </span>parse_delimited_str_accepts_different_delimiters(input: <span class="kw-2">&amp;</span>str, expected: <span class="kw-2">&amp;</span>str) {
+<a href=#546 id=546 data-nosnippet>546</a>        <span class="kw">let </span>p = Parser::new(input);
+<a href=#547 id=547 data-nosnippet>547</a>        <span class="kw">let </span>s = p.parse_delimited_str().unwrap();
+<a href=#548 id=548 data-nosnippet>548</a>
+<a href=#549 id=549 data-nosnippet>549</a>        <span class="macro">assert_eq!</span>(s, expected);
+<a href=#550 id=550 data-nosnippet>550</a>    }
 <a href=#551 id=551 data-nosnippet>551</a>
-<a href=#552 id=552 data-nosnippet>552</a>        <span class="macro">assert_eq!</span>(substr, <span class="string">"x/foo/ a/baz/"</span>);
-<a href=#553 id=553 data-nosnippet>553</a>    }
-<a href=#554 id=554 data-nosnippet>554</a>
-<a href=#555 id=555 data-nosnippet>555</a>    <span class="attr">#[test]
-<a href=#556 id=556 data-nosnippet>556</a>    </span><span class="kw">fn </span>parse_guard_returns_correct_span() {
-<a href=#557 id=557 data-nosnippet>557</a>        <span class="kw">let </span>p = Parser::new(<span class="string">"g/foo/ c/bar/   "</span>);
-<a href=#558 id=558 data-nosnippet>558</a>        <span class="kw">let </span>guard = p.parse_guard(<span class="bool-val">false</span>).unwrap();
-<a href=#559 id=559 data-nosnippet>559</a>        <span class="kw">let </span>substr = p.input.span_text(<span class="kw-2">&amp;</span>guard.span);
-<a href=#560 id=560 data-nosnippet>560</a>
-<a href=#561 id=561 data-nosnippet>561</a>        <span class="macro">assert_eq!</span>(substr, <span class="string">"g/foo/ c/bar/"</span>);
-<a href=#562 id=562 data-nosnippet>562</a>    }
-<a href=#563 id=563 data-nosnippet>563</a>
-<a href=#564 id=564 data-nosnippet>564</a>    <span class="attr">#[test]
-<a href=#565 id=565 data-nosnippet>565</a>    </span><span class="kw">fn </span>parse_group_returns_correct_span() {
-<a href=#566 id=566 data-nosnippet>566</a>        <span class="kw">let </span>p = Parser::new(<span class="string">"  { x/foo/ c/bar/;\nx/bar/ c/foo/; }    "</span>);
-<a href=#567 id=567 data-nosnippet>567</a>        p.input.consume_whitespace();
-<a href=#568 id=568 data-nosnippet>568</a>        <span class="kw">let </span>seq = p.parse_group().unwrap();
-<a href=#569 id=569 data-nosnippet>569</a>        <span class="kw">let </span>substr = p.input.span_text(<span class="kw-2">&amp;</span>seq.span);
+<a href=#552 id=552 data-nosnippet>552</a>    <span class="attr">#[test]
+<a href=#553 id=553 data-nosnippet>553</a>    </span><span class="kw">fn </span>parse_delimited_str_rejects_semicolon_as_a_delimiter() {
+<a href=#554 id=554 data-nosnippet>554</a>        <span class="kw">let </span>p = Parser::new(<span class="string">";foo;"</span>);
+<a href=#555 id=555 data-nosnippet>555</a>        <span class="kw">let </span>err = p.parse_delimited_str().unwrap_err();
+<a href=#556 id=556 data-nosnippet>556</a>
+<a href=#557 id=557 data-nosnippet>557</a>        <span class="macro">assert_eq!</span>(err.kind, ErrorKind::UnexpectedChar(<span class="string">';'</span>));
+<a href=#558 id=558 data-nosnippet>558</a>    }
+<a href=#559 id=559 data-nosnippet>559</a>
+<a href=#560 id=560 data-nosnippet>560</a>    <span class="attr">#[test]
+<a href=#561 id=561 data-nosnippet>561</a>    </span><span class="kw">fn </span>parse_action_returns_correct_span() {
+<a href=#562 id=562 data-nosnippet>562</a>        <span class="kw">let </span>p = Parser::new(<span class="string">"c/bar/  # comment"</span>);
+<a href=#563 id=563 data-nosnippet>563</a>        <span class="kw">let </span>action = p.parse_action(<span class="bool-val">false</span>).unwrap();
+<a href=#564 id=564 data-nosnippet>564</a>
+<a href=#565 id=565 data-nosnippet>565</a>        <span class="macro">assert_eq!</span>(action.tag, <span class="prelude-val">Some</span>(<span class="string">'c'</span>));
+<a href=#566 id=566 data-nosnippet>566</a>
+<a href=#567 id=567 data-nosnippet>567</a>        <span class="kw">let </span>substr = p.input.span_text(<span class="kw-2">&amp;</span>action.span);
+<a href=#568 id=568 data-nosnippet>568</a>        <span class="macro">assert_eq!</span>(substr, <span class="string">"c/bar/"</span>);
+<a href=#569 id=569 data-nosnippet>569</a>    }
 <a href=#570 id=570 data-nosnippet>570</a>
-<a href=#571 id=571 data-nosnippet>571</a>        <span class="macro">assert_eq!</span>(substr, <span class="string">"{ x/foo/ c/bar/;\nx/bar/ c/foo/; }"</span>);
-<a href=#572 id=572 data-nosnippet>572</a>    }
-<a href=#573 id=573 data-nosnippet>573</a>
-<a href=#574 id=574 data-nosnippet>574</a>    <span class="attr">#[test_case(<span class="string">"n/foo/ a"</span>,
-<a href=#575 id=575 data-nosnippet>575</a>        Ast::Narrow(ReNode {
-<a href=#576 id=576 data-nosnippet>576</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)),
-<a href=#577 id=577 data-nosnippet>577</a>            re: <span class="string">"foo"</span>.to_string(),
-<a href=#578 id=578 data-nosnippet>578</a>            node: Box::new(action(<span class="string">'a'</span>, span((<span class="number">7</span>, <span class="number">1</span>, <span class="number">8</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)))),
-<a href=#579 id=579 data-nosnippet>579</a>        });
-<a href=#580 id=580 data-nosnippet>580</a>        <span class="string">"narrow"
-<a href=#581 id=581 data-nosnippet>581</a>    </span>)]
-<a href=#582 id=582 data-nosnippet>582</a>    #[test_case(<span class="string">"x/foo/ a"</span>,
-<a href=#583 id=583 data-nosnippet>583</a>        Ast::Extract(ReNode {
-<a href=#584 id=584 data-nosnippet>584</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)),
-<a href=#585 id=585 data-nosnippet>585</a>            re: <span class="string">"foo"</span>.to_string(),
-<a href=#586 id=586 data-nosnippet>586</a>            node: Box::new(action(<span class="string">'a'</span>, span((<span class="number">7</span>, <span class="number">1</span>, <span class="number">8</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)))),
-<a href=#587 id=587 data-nosnippet>587</a>        });
-<a href=#588 id=588 data-nosnippet>588</a>        <span class="string">"extract"
-<a href=#589 id=589 data-nosnippet>589</a>    </span>)]
-<a href=#590 id=590 data-nosnippet>590</a>    #[test_case(<span class="string">"y/foo/ a"</span>,
-<a href=#591 id=591 data-nosnippet>591</a>        Ast::ExtractBetween(ReNode {
-<a href=#592 id=592 data-nosnippet>592</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)),
-<a href=#593 id=593 data-nosnippet>593</a>            re: <span class="string">"foo"</span>.to_string(),
-<a href=#594 id=594 data-nosnippet>594</a>            node: Box::new(action(<span class="string">'a'</span>, span((<span class="number">7</span>, <span class="number">1</span>, <span class="number">8</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)))),
-<a href=#595 id=595 data-nosnippet>595</a>        });
-<a href=#596 id=596 data-nosnippet>596</a>        <span class="string">"extract between"
-<a href=#597 id=597 data-nosnippet>597</a>    </span>)]
-<a href=#598 id=598 data-nosnippet>598</a>    #[test_case(<span class="string">"X a"</span>,
-<a href=#599 id=599 data-nosnippet>599</a>        Ast::Extract(ReNode {
-<a href=#600 id=600 data-nosnippet>600</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>)),
-<a href=#601 id=601 data-nosnippet>601</a>            re: <span class="string">".*\n"</span>.to_string(),
-<a href=#602 id=602 data-nosnippet>602</a>            node: Box::new(action(<span class="string">'a'</span>, span((<span class="number">2</span>, <span class="number">1</span>, <span class="number">3</span>), (<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>)))),
-<a href=#603 id=603 data-nosnippet>603</a>        });
-<a href=#604 id=604 data-nosnippet>604</a>        <span class="string">"extract lines"
-<a href=#605 id=605 data-nosnippet>605</a>    </span>)]
-<a href=#606 id=606 data-nosnippet>606</a>    #[test_case(<span class="string">"g/foo/ a"</span>,
-<a href=#607 id=607 data-nosnippet>607</a>        Ast::Guard(ReNode {
-<a href=#608 id=608 data-nosnippet>608</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)),
-<a href=#609 id=609 data-nosnippet>609</a>            re: <span class="string">"foo"</span>.to_string(),
-<a href=#610 id=610 data-nosnippet>610</a>            node: Box::new(action(<span class="string">'a'</span>, span((<span class="number">7</span>, <span class="number">1</span>, <span class="number">8</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)))),
-<a href=#611 id=611 data-nosnippet>611</a>        });
-<a href=#612 id=612 data-nosnippet>612</a>        <span class="string">"guard"
-<a href=#613 id=613 data-nosnippet>613</a>    </span>)]
-<a href=#614 id=614 data-nosnippet>614</a>    #[test_case(<span class="string">"v/foo/ a"</span>,
-<a href=#615 id=615 data-nosnippet>615</a>        Ast::InvGuard(ReNode {
-<a href=#616 id=616 data-nosnippet>616</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)),
-<a href=#617 id=617 data-nosnippet>617</a>            re: <span class="string">"foo"</span>.to_string(),
-<a href=#618 id=618 data-nosnippet>618</a>            node: Box::new(action(<span class="string">'a'</span>, span((<span class="number">7</span>, <span class="number">1</span>, <span class="number">8</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)))),
-<a href=#619 id=619 data-nosnippet>619</a>        });
-<a href=#620 id=620 data-nosnippet>620</a>        <span class="string">"inv-guard"
-<a href=#621 id=621 data-nosnippet>621</a>    </span>)]
-<a href=#622 id=622 data-nosnippet>622</a>    #[test_case(<span class="string">"{ a; b/foo/; }"</span>,
-<a href=#623 id=623 data-nosnippet>623</a>        Ast::Parallel(Sequence {
-<a href=#624 id=624 data-nosnippet>624</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">14</span>, <span class="number">1</span>, <span class="number">15</span>)),
-<a href=#625 id=625 data-nosnippet>625</a>            nodes: <span class="macro">vec!</span>[
-<a href=#626 id=626 data-nosnippet>626</a>                action(<span class="string">'a'</span>, span((<span class="number">2</span>, <span class="number">1</span>, <span class="number">3</span>), (<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>))),
-<a href=#627 id=627 data-nosnippet>627</a>                template_action(<span class="string">'b'</span>, <span class="string">"foo"</span>, span((<span class="number">5</span>, <span class="number">1</span>, <span class="number">6</span>), (<span class="number">11</span>, <span class="number">1</span>, <span class="number">12</span>))),
-<a href=#628 id=628 data-nosnippet>628</a>            ]</span>,
-<a href=#629 id=629 data-nosnippet>629</a>        });
-<a href=#630 id=630 data-nosnippet>630</a>        <span class="string">"group"
-<a href=#631 id=631 data-nosnippet>631</a>    </span>)]
-<a href=#632 id=632 data-nosnippet>632</a>    <span class="attr">#[test]
-<a href=#633 id=633 data-nosnippet>633</a>    </span><span class="kw">fn </span>parse1_works(input: <span class="kw-2">&amp;</span>str, expected: Ast) {
-<a href=#634 id=634 data-nosnippet>634</a>        <span class="kw">let </span>p = Parser::new(input);
-<a href=#635 id=635 data-nosnippet>635</a>        <span class="kw">let </span>ast = p.parse1(<span class="bool-val">false</span>).unwrap();
-<a href=#636 id=636 data-nosnippet>636</a>        <span class="macro">assert_eq!</span>(ast, expected);
-<a href=#637 id=637 data-nosnippet>637</a>    }
-<a href=#638 id=638 data-nosnippet>638</a>}</code></pre></div></section></main></body></html>
+<a href=#571 id=571 data-nosnippet>571</a>    <span class="attr">#[test]
+<a href=#572 id=572 data-nosnippet>572</a>    </span><span class="kw">fn </span>parse_action_returns_correct_span_without_a_template() {
+<a href=#573 id=573 data-nosnippet>573</a>        <span class="kw">let </span>p = Parser::new(<span class="string">"a # comment"</span>);
+<a href=#574 id=574 data-nosnippet>574</a>        <span class="kw">let </span>action = p.parse_action(<span class="bool-val">false</span>).unwrap();
+<a href=#575 id=575 data-nosnippet>575</a>
+<a href=#576 id=576 data-nosnippet>576</a>        <span class="macro">assert_eq!</span>(action.tag, <span class="prelude-val">Some</span>(<span class="string">'a'</span>));
+<a href=#577 id=577 data-nosnippet>577</a>
+<a href=#578 id=578 data-nosnippet>578</a>        <span class="kw">let </span>substr = p.input.span_text(<span class="kw-2">&amp;</span>action.span);
+<a href=#579 id=579 data-nosnippet>579</a>        <span class="macro">assert_eq!</span>(substr, <span class="string">"a"</span>);
+<a href=#580 id=580 data-nosnippet>580</a>    }
+<a href=#581 id=581 data-nosnippet>581</a>
+<a href=#582 id=582 data-nosnippet>582</a>    <span class="attr">#[test]
+<a href=#583 id=583 data-nosnippet>583</a>    </span><span class="kw">fn </span>parse_extract_returns_correct_span() {
+<a href=#584 id=584 data-nosnippet>584</a>        <span class="kw">let </span>p = Parser::new(<span class="string">"x/foo/ a/baz/  # comment"</span>);
+<a href=#585 id=585 data-nosnippet>585</a>        <span class="kw">let </span>extract = p.parse_extract(<span class="bool-val">false</span>).unwrap();
+<a href=#586 id=586 data-nosnippet>586</a>        <span class="kw">let </span>substr = p.input.span_text(<span class="kw-2">&amp;</span>extract.span);
+<a href=#587 id=587 data-nosnippet>587</a>
+<a href=#588 id=588 data-nosnippet>588</a>        <span class="macro">assert_eq!</span>(substr, <span class="string">"x/foo/ a/baz/"</span>);
+<a href=#589 id=589 data-nosnippet>589</a>    }
+<a href=#590 id=590 data-nosnippet>590</a>
+<a href=#591 id=591 data-nosnippet>591</a>    <span class="attr">#[test]
+<a href=#592 id=592 data-nosnippet>592</a>    </span><span class="kw">fn </span>parse_guard_returns_correct_span() {
+<a href=#593 id=593 data-nosnippet>593</a>        <span class="kw">let </span>p = Parser::new(<span class="string">"g/foo/ c/bar/   "</span>);
+<a href=#594 id=594 data-nosnippet>594</a>        <span class="kw">let </span>guard = p.parse_guard(<span class="bool-val">false</span>).unwrap();
+<a href=#595 id=595 data-nosnippet>595</a>        <span class="kw">let </span>substr = p.input.span_text(<span class="kw-2">&amp;</span>guard.span);
+<a href=#596 id=596 data-nosnippet>596</a>
+<a href=#597 id=597 data-nosnippet>597</a>        <span class="macro">assert_eq!</span>(substr, <span class="string">"g/foo/ c/bar/"</span>);
+<a href=#598 id=598 data-nosnippet>598</a>    }
+<a href=#599 id=599 data-nosnippet>599</a>
+<a href=#600 id=600 data-nosnippet>600</a>    <span class="attr">#[test]
+<a href=#601 id=601 data-nosnippet>601</a>    </span><span class="kw">fn </span>parse_group_returns_correct_span() {
+<a href=#602 id=602 data-nosnippet>602</a>        <span class="kw">let </span>p = Parser::new(<span class="string">"  { x/foo/ c/bar/;\nx/bar/ c/foo/; }    "</span>);
+<a href=#603 id=603 data-nosnippet>603</a>        p.input.consume_whitespace();
+<a href=#604 id=604 data-nosnippet>604</a>        <span class="kw">let </span>seq = p.parse_group().unwrap();
+<a href=#605 id=605 data-nosnippet>605</a>        <span class="kw">let </span>substr = p.input.span_text(<span class="kw-2">&amp;</span>seq.span);
+<a href=#606 id=606 data-nosnippet>606</a>
+<a href=#607 id=607 data-nosnippet>607</a>        <span class="macro">assert_eq!</span>(substr, <span class="string">"{ x/foo/ c/bar/;\nx/bar/ c/foo/; }"</span>);
+<a href=#608 id=608 data-nosnippet>608</a>    }
+<a href=#609 id=609 data-nosnippet>609</a>
+<a href=#610 id=610 data-nosnippet>610</a>    <span class="attr">#[test_case(<span class="string">"n/foo/ a"</span>,
+<a href=#611 id=611 data-nosnippet>611</a>        Ast::Narrow(ReNode {
+<a href=#612 id=612 data-nosnippet>612</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)),
+<a href=#613 id=613 data-nosnippet>613</a>            re: <span class="string">"foo"</span>.to_string(),
+<a href=#614 id=614 data-nosnippet>614</a>            node: Box::new(action(<span class="string">'a'</span>, span((<span class="number">7</span>, <span class="number">1</span>, <span class="number">8</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)))),
+<a href=#615 id=615 data-nosnippet>615</a>        });
+<a href=#616 id=616 data-nosnippet>616</a>        <span class="string">"narrow"
+<a href=#617 id=617 data-nosnippet>617</a>    </span>)]
+<a href=#618 id=618 data-nosnippet>618</a>    #[test_case(<span class="string">"x/foo/ a"</span>,
+<a href=#619 id=619 data-nosnippet>619</a>        Ast::Extract(ReNode {
+<a href=#620 id=620 data-nosnippet>620</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)),
+<a href=#621 id=621 data-nosnippet>621</a>            re: <span class="string">"foo"</span>.to_string(),
+<a href=#622 id=622 data-nosnippet>622</a>            node: Box::new(action(<span class="string">'a'</span>, span((<span class="number">7</span>, <span class="number">1</span>, <span class="number">8</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)))),
+<a href=#623 id=623 data-nosnippet>623</a>        });
+<a href=#624 id=624 data-nosnippet>624</a>        <span class="string">"extract"
+<a href=#625 id=625 data-nosnippet>625</a>    </span>)]
+<a href=#626 id=626 data-nosnippet>626</a>    #[test_case(<span class="string">"y/foo/ a"</span>,
+<a href=#627 id=627 data-nosnippet>627</a>        Ast::ExtractBetween(ReNode {
+<a href=#628 id=628 data-nosnippet>628</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)),
+<a href=#629 id=629 data-nosnippet>629</a>            re: <span class="string">"foo"</span>.to_string(),
+<a href=#630 id=630 data-nosnippet>630</a>            node: Box::new(action(<span class="string">'a'</span>, span((<span class="number">7</span>, <span class="number">1</span>, <span class="number">8</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)))),
+<a href=#631 id=631 data-nosnippet>631</a>        });
+<a href=#632 id=632 data-nosnippet>632</a>        <span class="string">"extract between"
+<a href=#633 id=633 data-nosnippet>633</a>    </span>)]
+<a href=#634 id=634 data-nosnippet>634</a>    #[test_case(<span class="string">"X a"</span>,
+<a href=#635 id=635 data-nosnippet>635</a>        Ast::Extract(ReNode {
+<a href=#636 id=636 data-nosnippet>636</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>)),
+<a href=#637 id=637 data-nosnippet>637</a>            re: <span class="string">".*\n"</span>.to_string(),
+<a href=#638 id=638 data-nosnippet>638</a>            node: Box::new(action(<span class="string">'a'</span>, span((<span class="number">2</span>, <span class="number">1</span>, <span class="number">3</span>), (<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>)))),
+<a href=#639 id=639 data-nosnippet>639</a>        });
+<a href=#640 id=640 data-nosnippet>640</a>        <span class="string">"extract lines"
+<a href=#641 id=641 data-nosnippet>641</a>    </span>)]
+<a href=#642 id=642 data-nosnippet>642</a>    #[test_case(<span class="string">"g/foo/ a"</span>,
+<a href=#643 id=643 data-nosnippet>643</a>        Ast::Guard(ReNode {
+<a href=#644 id=644 data-nosnippet>644</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)),
+<a href=#645 id=645 data-nosnippet>645</a>            re: <span class="string">"foo"</span>.to_string(),
+<a href=#646 id=646 data-nosnippet>646</a>            node: Box::new(action(<span class="string">'a'</span>, span((<span class="number">7</span>, <span class="number">1</span>, <span class="number">8</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)))),
+<a href=#647 id=647 data-nosnippet>647</a>        });
+<a href=#648 id=648 data-nosnippet>648</a>        <span class="string">"guard"
+<a href=#649 id=649 data-nosnippet>649</a>    </span>)]
+<a href=#650 id=650 data-nosnippet>650</a>    #[test_case(<span class="string">"v/foo/ a"</span>,
+<a href=#651 id=651 data-nosnippet>651</a>        Ast::InvGuard(ReNode {
+<a href=#652 id=652 data-nosnippet>652</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)),
+<a href=#653 id=653 data-nosnippet>653</a>            re: <span class="string">"foo"</span>.to_string(),
+<a href=#654 id=654 data-nosnippet>654</a>            node: Box::new(action(<span class="string">'a'</span>, span((<span class="number">7</span>, <span class="number">1</span>, <span class="number">8</span>), (<span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>)))),
+<a href=#655 id=655 data-nosnippet>655</a>        });
+<a href=#656 id=656 data-nosnippet>656</a>        <span class="string">"inv-guard"
+<a href=#657 id=657 data-nosnippet>657</a>    </span>)]
+<a href=#658 id=658 data-nosnippet>658</a>    #[test_case(<span class="string">"{ a; b/foo/; }"</span>,
+<a href=#659 id=659 data-nosnippet>659</a>        Ast::Parallel(Sequence {
+<a href=#660 id=660 data-nosnippet>660</a>            span: span((<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>), (<span class="number">14</span>, <span class="number">1</span>, <span class="number">15</span>)),
+<a href=#661 id=661 data-nosnippet>661</a>            nodes: <span class="macro">vec!</span>[
+<a href=#662 id=662 data-nosnippet>662</a>                action(<span class="string">'a'</span>, span((<span class="number">2</span>, <span class="number">1</span>, <span class="number">3</span>), (<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>))),
+<a href=#663 id=663 data-nosnippet>663</a>                template_action(<span class="string">'b'</span>, <span class="string">"foo"</span>, span((<span class="number">5</span>, <span class="number">1</span>, <span class="number">6</span>), (<span class="number">11</span>, <span class="number">1</span>, <span class="number">12</span>))),
+<a href=#664 id=664 data-nosnippet>664</a>            ]</span>,
+<a href=#665 id=665 data-nosnippet>665</a>        });
+<a href=#666 id=666 data-nosnippet>666</a>        <span class="string">"group"
+<a href=#667 id=667 data-nosnippet>667</a>    </span>)]
+<a href=#668 id=668 data-nosnippet>668</a>    <span class="attr">#[test]
+<a href=#669 id=669 data-nosnippet>669</a>    </span><span class="kw">fn </span>parse1_works(input: <span class="kw-2">&amp;</span>str, expected: Ast) {
+<a href=#670 id=670 data-nosnippet>670</a>        <span class="kw">let </span>p = Parser::new(input);
+<a href=#671 id=671 data-nosnippet>671</a>        <span class="kw">let </span>ast = p.parse1(<span class="bool-val">false</span>).unwrap();
+<a href=#672 id=672 data-nosnippet>672</a>        <span class="macro">assert_eq!</span>(ast, expected);
+<a href=#673 id=673 data-nosnippet>673</a>    }
+<a href=#674 id=674 data-nosnippet>674</a>}</code></pre></div></section></main></body></html>
