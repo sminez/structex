@@ -11,6 +11,12 @@ backed by a user provided regular expression engine. Support for using the
 ## Documentation
 
 This crate's public API is documented in [docs.rs](https://docs.rs/structex).
+See the [Structex](https://docs.rs/structex/latest/structex/struct.Structex.html)
+struct for details of the primary public API.
+
+[This blog post](https://www.sminez.dev/match-it-again-sam/) provides an overview
+of how structural expressions work along with some extended examples of how to
+make use of this crate.
 
 ## Usage
 
@@ -88,6 +94,10 @@ full input and then accept a chain of one or more of the following operators:
   - `g/$re/` "guard" the rest of the following chain on `$re` matching dot.
   - `v/$re/` "inverse guard" the rest of the following chain on `$re` _not_
     matching dot.
+
+> Note that the use of '/' as the delimiter here is by convention: any character
+> other than ';' may be used. To insert your chosen delimiter inside of the
+argument of an operator or action, escape it with a backslash.
 
 [^narrow]: The `n` narrowing operator is a new edition to the syntax added by
 this crate. In Pike's original system this narrowing was possible via "address"
@@ -183,13 +193,14 @@ when we match the second. Running again over our input we will get both
 the matches themselves _and_ their associated tag: `("This", 'B')`, 
 `("Bob", 'A')`, `("Alice", 'A')` and `("friend", 'A')`.
 
-Actions can also have an associated "argument" enclosed in slashes. This
-is useful for defining tags that control the type of action to be taken
-(for example `p` for printing) and then an additional argument that can
-be used alongside the match in order to handle the action (such as a
-template string). See the [templated_printing][7] example in the repo for
-a demonstration of how this can be implemented for a more complicated
-expression that uses multiple different template strings.
+Actions can also have an associated "argument" enclosed in the delimiter
+of your choice. This is useful for defining tags that control the type of
+action to be taken (for example `p` for printing) and then an additional
+argument that can be used alongside the match in order to handle the
+action (such as a template string). See the [templated_printing][7]
+example in the repo for a demonstration of how this can be implemented
+for a more complicated expression that uses multiple different template
+strings.
 
 
 [0]: https://docs.rs/regex/latest/regex/index.html
