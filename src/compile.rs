@@ -2,7 +2,7 @@
 use crate::{
     Error,
     ast::{self, Ast, Parser, ReNode, Sequence},
-    se::{Action, Extract, Guard, Narrow},
+    se::{Extract, Guard, Narrow},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,7 +31,7 @@ pub(crate) enum Inst {
 pub(crate) struct Compiler {
     pub(crate) re: Vec<String>,
     pub(crate) tags: Vec<char>,
-    pub(crate) actions: Vec<Action>,
+    pub(crate) actions: Vec<CompileAction>,
     pub(crate) require_actions: bool,
     pub(crate) allow_top_level_actions: bool,
     pub(crate) allowed_argless_tags: Option<String>,
@@ -87,7 +87,7 @@ impl Compiler {
         }
     }
 
-    fn push_action(&mut self, action: Action) -> usize {
+    fn push_action(&mut self, action: CompileAction) -> usize {
         match self.actions.iter().position(|a| a == &action) {
             Some(idx) => idx,
             None => {
@@ -172,12 +172,25 @@ impl Compiler {
         match action.tag {
             Some(tag) => {
                 self.push_tag(tag);
-                let action = self.push_action(Action::new(tag, action.s));
+                let action = self.push_action(CompileAction::new(tag, action.s));
 
                 Inst::Action(action)
             }
 
             None => Inst::EmitMatch,
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CompileAction {
+    pub(crate) id: usize,
+    pub(crate) tag: char,
+    pub(crate) arg: Option<String>,
+}
+
+impl CompileAction {
+    pub(crate) fn new(tag: char, arg: Option<String>) -> Self {
+        Self { id: 0, tag, arg }
     }
 }

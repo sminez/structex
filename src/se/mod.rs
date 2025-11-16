@@ -115,7 +115,7 @@ where
     /// assert_eq!(actions[1].tag(), 'a');
     /// assert_eq!(actions[1].arg(), Some("baz"));
     /// ```
-    pub fn actions(&self) -> &[Arc<Action>] {
+    pub fn actions(&self) -> &[Action] {
         &self.inner.actions
     }
 
@@ -428,11 +428,10 @@ impl StructexBuilder {
         let actions: Box<[_]> = actions
             .into_iter()
             .enumerate()
-            .map(|(id, mut a)| {
-                a.arg = a.arg.take().map(|s| (self.action_arg_fn)(s));
-                a.id = id;
-
-                Arc::new(a)
+            .map(|(id, mut a)| Action {
+                id,
+                tag: a.tag,
+                arg: a.arg.take().map(|s| Arc::from((self.action_arg_fn)(s))),
             })
             .collect();
 
@@ -458,7 +457,7 @@ where
     pub(super) inst: Inst,
     pub(super) re: Box<[R]>,
     pub(super) tags: Box<[char]>,
-    pub(super) actions: Box<[Arc<Action>]>,
+    pub(super) actions: Box<[Action]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -513,7 +512,7 @@ where
     pub captures: Captures<H>,
     /// An optional [Action] assigned by the match if one was specified in the [Structex]
     /// expression.
-    pub action: Option<Arc<Action>>,
+    pub action: Option<Action>,
 }
 
 impl<H> TaggedCaptures<H>
@@ -563,14 +562,10 @@ where
 pub struct Action {
     id: usize,
     tag: char,
-    arg: Option<String>,
+    arg: Option<Arc<str>>,
 }
 
 impl Action {
-    pub(crate) fn new(tag: char, arg: Option<String>) -> Self {
-        Self { id: 0, tag, arg }
-    }
-
     /// The unique ID for this action within the parent [Structex].
     pub fn id(&self) -> usize {
         self.id
