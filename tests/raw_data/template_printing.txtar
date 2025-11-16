@@ -26,3 +26,16 @@ First word is "This"
 Last word is "Bob"
 Last word is "Alice"
 Last word is "friend"
+
+-----
+
+-- name --
+non slash delimiters
+-- se --
+x:// (.*): p!{1}!
+-- haystack --
+// foo
+// bar
+-- matches --
+foo
+bar

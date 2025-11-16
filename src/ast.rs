@@ -253,7 +253,7 @@ impl<'i, 'c> Parser<'i, 'c> {
             '}' => return Err(self.error(ErrorKind::UnexpectedChar('}'))),
 
             // Default to trying to parse an action
-            _ => Ast::Action(self.parse_action()?),
+            _ => Ast::Action(self.parse_action(in_group)?),
         };
 
         Ok(ast)
@@ -330,12 +330,20 @@ impl<'i, 'c> Parser<'i, 'c> {
         span.with_end(end)
     }
 
-    fn parse_action(&self) -> Result<Action, ParseError> {
+    fn parse_action(&self, in_group: bool) -> Result<Action, ParseError> {
         let start = self.input.pos();
         let tag = self.input.char();
         self.input.advance();
 
-        let s = if self.input.try_char() == Some('/') {
+        let should_parse_arg = match self.input.try_char() {
+            Some(';') if !in_group => return Err(self.error(ErrorKind::UnexpectedChar(';'))),
+            Some(';') => false,
+            Some(ch) if ch.is_whitespace() => false,
+            None => false,
+            Some(_) => true,
+        };
+
+        let s = if should_parse_arg {
             if let Some(allowed) = self.allowed_single_arg_tags.as_ref()
                 && !allowed.contains(tag)
             {
@@ -458,18 +466,22 @@ impl<'i, 'c> Parser<'i, 'c> {
     /// Can't use ParseInput::read_until for this (or return &str) as we need to handle
     /// escaping the delimiter inside of the string.
     fn parse_delimited_str(&self) -> Result<String, ParseError> {
-        if self.input.try_char() != Some('/') {
-            return Err(self.error(ErrorKind::MissingDelimiter('/')));
-        } else if !self.input.advance() {
+        let delim = match self.input.try_char() {
+            Some(';') => return Err(self.error(ErrorKind::UnexpectedChar(';'))),
+            None => return Err(self.error(ErrorKind::UnexpectedEof)),
+            Some(ch) => ch,
+        };
+
+        if !self.input.advance() {
             return Err(self.error(ErrorKind::UnexpectedEof));
         }
 
         let mut s = String::new();
-        let mut prev = '/';
+        let mut prev = delim;
 
         while !self.input.at_eof() {
             let ch = self.input.char();
-            if ch == '/' {
+            if ch == delim {
                 if prev == '\\' {
                     s.push(ch);
                 } else {
@@ -488,7 +500,7 @@ impl<'i, 'c> Parser<'i, 'c> {
             self.input.advance();
         }
 
-        Err(self.error(ErrorKind::MissingDelimiter('/')))
+        Err(self.error(ErrorKind::MissingDelimiter(delim)))
     }
 }
 
@@ -521,10 +533,34 @@ mod tests {
         })
     }
 
+    #[test_case("/foo/", "foo"; "slash")]
+    #[test_case(r"/foo\/bar/", "foo/bar"; "slash with escape")]
+    #[test_case(":foo:", "foo"; "colon")]
+    #[test_case(r":foo\:bar:", "foo:bar"; "colon with escape")]
+    #[test_case(".foo.", "foo"; "period")]
+    #[test_case(r".foo\.bar.", "foo.bar"; "period with escape")]
+    #[test_case("|foo|", "foo"; "pipe")]
+    #[test_case(r"|foo\|bar|", "foo|bar"; "pipe with escape")]
+    #[test]
+    fn parse_delimited_str_accepts_different_delimiters(input: &str, expected: &str) {
+        let p = Parser::new(input);
+        let s = p.parse_delimited_str().unwrap();
+
+        assert_eq!(s, expected);
+    }
+
+    #[test]
+    fn parse_delimited_str_rejects_semicolon_as_a_delimiter() {
+        let p = Parser::new(";foo;");
+        let err = p.parse_delimited_str().unwrap_err();
+
+        assert_eq!(err.kind, ErrorKind::UnexpectedChar(';'));
+    }
+
     #[test]
     fn parse_action_returns_correct_span() {
         let p = Parser::new("c/bar/  # comment");
-        let action = p.parse_action().unwrap();
+        let action = p.parse_action(false).unwrap();
 
         assert_eq!(action.tag, Some('c'));
 
@@ -535,7 +571,7 @@ mod tests {
     #[test]
     fn parse_action_returns_correct_span_without_a_template() {
         let p = Parser::new("a # comment");
-        let action = p.parse_action().unwrap();
+        let action = p.parse_action(false).unwrap();
 
         assert_eq!(action.tag, Some('a'));
 
