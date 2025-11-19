@@ -12,15 +12,15 @@
 <a href=#12 id=12 data-nosnippet>12</a>}
 <a href=#13 id=13 data-nosnippet>13</a>
 <a href=#14 id=14 data-nosnippet>14</a><span class="kw">impl </span>Narrow {
-<a href=#15 id=15 data-nosnippet>15</a>    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>apply&lt;<span class="lifetime">'s</span>, R, H&gt;(
+<a href=#15 id=15 data-nosnippet>15</a>    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>apply&lt;<span class="lifetime">'s</span>, <span class="lifetime">'h</span>, R, H&gt;(
 <a href=#16 id=16 data-nosnippet>16</a>        <span class="kw-2">&amp;</span><span class="lifetime">'s </span><span class="self">self</span>,
-<a href=#17 id=17 data-nosnippet>17</a>        haystack: H,
+<a href=#17 id=17 data-nosnippet>17</a>        haystack: <span class="kw-2">&amp;</span><span class="lifetime">'h </span>H,
 <a href=#18 id=18 data-nosnippet>18</a>        dot: Dot,
 <a href=#19 id=19 data-nosnippet>19</a>        inner: Arc&lt;Inner&lt;R&gt;&gt;,
-<a href=#20 id=20 data-nosnippet>20</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;MatchesInner&lt;<span class="lifetime">'s</span>, R, H&gt;&gt;
+<a href=#20 id=20 data-nosnippet>20</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;MatchesInner&lt;<span class="lifetime">'s</span>, <span class="lifetime">'h</span>, R, H&gt;&gt;
 <a href=#21 id=21 data-nosnippet>21</a>    <span class="kw">where
 <a href=#22 id=22 data-nosnippet>22</a>        </span>R: RegexEngine,
-<a href=#23 id=23 data-nosnippet>23</a>        H: Haystack&lt;R&gt;,
+<a href=#23 id=23 data-nosnippet>23</a>        H: Haystack&lt;R&gt; + <span class="question-mark">?</span>Sized,
 <a href=#24 id=24 data-nosnippet>24</a>    {
 <a href=#25 id=25 data-nosnippet>25</a>        <span class="kw">let </span>(from, to) = dot.loc();
 <a href=#26 id=26 data-nosnippet>26</a>        <span class="kw">let </span>cap = haystack.captures_between(<span class="kw-2">&amp;</span>inner.re[<span class="self">self</span>.re], from, to)<span class="question-mark">?</span>;

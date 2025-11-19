@@ -364,7 +364,7 @@
 <a href=#364 id=364 data-nosnippet>364</a>    /// [render_to][Template::render_to] method.
 <a href=#365 id=365 data-nosnippet>365</a>    </span><span class="kw">pub fn </span>render&lt;H&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, caps: <span class="kw-2">&amp;</span>TaggedCaptures&lt;H&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;String, RenderError&gt;
 <a href=#366 id=366 data-nosnippet>366</a>    <span class="kw">where
-<a href=#367 id=367 data-nosnippet>367</a>        </span>H: Sliceable,
+<a href=#367 id=367 data-nosnippet>367</a>        </span>H: Sliceable + <span class="question-mark">?</span>Sized,
 <a href=#368 id=368 data-nosnippet>368</a>    {
 <a href=#369 id=369 data-nosnippet>369</a>        <span class="kw">let </span><span class="kw-2">mut </span>buf = Vec::with_capacity(<span class="self">self</span>.raw.len() * <span class="number">2</span>);
 <a href=#370 id=370 data-nosnippet>370</a>        <span class="self">self</span>.render_to(<span class="kw-2">&amp;mut </span>buf, caps)<span class="question-mark">?</span>;
@@ -380,7 +380,7 @@
 <a href=#380 id=380 data-nosnippet>380</a>    /// To render directly to a [String], see the [render][Template::render] method.
 <a href=#381 id=381 data-nosnippet>381</a>    </span><span class="kw">pub fn </span>render_to&lt;H, W&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, w: <span class="kw-2">&amp;mut </span>W, caps: <span class="kw-2">&amp;</span>TaggedCaptures&lt;H&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;usize, RenderError&gt;
 <a href=#382 id=382 data-nosnippet>382</a>    <span class="kw">where
-<a href=#383 id=383 data-nosnippet>383</a>        </span>H: Sliceable,
+<a href=#383 id=383 data-nosnippet>383</a>        </span>H: Sliceable + <span class="question-mark">?</span>Sized,
 <a href=#384 id=384 data-nosnippet>384</a>        W: Write,
 <a href=#385 id=385 data-nosnippet>385</a>    {
 <a href=#386 id=386 data-nosnippet>386</a>        <span class="kw">let </span><span class="kw-2">mut </span>n = <span class="number">0</span>;
@@ -425,7 +425,7 @@
 <a href=#425 id=425 data-nosnippet>425</a>        ctx: <span class="kw-2">&amp;</span>C,
 <a href=#426 id=426 data-nosnippet>426</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;String, RenderError&gt;
 <a href=#427 id=427 data-nosnippet>427</a>    <span class="kw">where
-<a href=#428 id=428 data-nosnippet>428</a>        </span>H: Sliceable,
+<a href=#428 id=428 data-nosnippet>428</a>        </span>H: Sliceable + <span class="question-mark">?</span>Sized,
 <a href=#429 id=429 data-nosnippet>429</a>        C: Context,
 <a href=#430 id=430 data-nosnippet>430</a>    {
 <a href=#431 id=431 data-nosnippet>431</a>        <span class="kw">let </span><span class="kw-2">mut </span>buf = Vec::with_capacity(<span class="self">self</span>.raw.len() * <span class="number">2</span>);
@@ -446,7 +446,7 @@
 <a href=#446 id=446 data-nosnippet>446</a>        ctx: <span class="kw-2">&amp;</span>C,
 <a href=#447 id=447 data-nosnippet>447</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;usize, RenderError&gt;
 <a href=#448 id=448 data-nosnippet>448</a>    <span class="kw">where
-<a href=#449 id=449 data-nosnippet>449</a>        </span>H: Sliceable,
+<a href=#449 id=449 data-nosnippet>449</a>        </span>H: Sliceable + <span class="question-mark">?</span>Sized,
 <a href=#450 id=450 data-nosnippet>450</a>        W: Write,
 <a href=#451 id=451 data-nosnippet>451</a>        C: Context,
 <a href=#452 id=452 data-nosnippet>452</a>    {
@@ -557,7 +557,7 @@
 <a href=#557 id=557 data-nosnippet>557</a>    #[test_case(<span class="string">"{3}"</span>, <span class="string">""</span>; <span class="string">"unknown capture"</span>)]
 <a href=#558 id=558 data-nosnippet>558</a>    #[test]
 <a href=#559 id=559 data-nosnippet>559</a>    </span><span class="kw">fn </span>render_works(s: <span class="kw-2">&amp;</span>str, expected: <span class="kw-2">&amp;</span>str) {
-<a href=#560 id=560 data-nosnippet>560</a>        <span class="kw">let </span>caps: TaggedCaptures&lt;<span class="kw-2">&amp;</span>str&gt; = TaggedCaptures {
+<a href=#560 id=560 data-nosnippet>560</a>        <span class="kw">let </span>caps: TaggedCaptures&lt;str&gt; = TaggedCaptures {
 <a href=#561 id=561 data-nosnippet>561</a>            captures: Captures::new(<span class="string">"foo bar"</span>, <span class="macro">vec!</span>[<span class="prelude-val">Some</span>((<span class="number">0</span>, <span class="number">7</span>)), <span class="prelude-val">Some</span>((<span class="number">0</span>, <span class="number">3</span>)), <span class="prelude-val">Some</span>((<span class="number">4</span>, <span class="number">7</span>))]),
 <a href=#562 id=562 data-nosnippet>562</a>            action: <span class="prelude-val">None</span>,
 <a href=#563 id=563 data-nosnippet>563</a>        };
@@ -570,7 +570,7 @@
 <a href=#570 id=570 data-nosnippet>570</a>
 <a href=#571 id=571 data-nosnippet>571</a>    <span class="attr">#[test]
 <a href=#572 id=572 data-nosnippet>572</a>    </span><span class="kw">fn </span>render_returns_error_for_variables() {
-<a href=#573 id=573 data-nosnippet>573</a>        <span class="kw">let </span>caps: TaggedCaptures&lt;<span class="kw-2">&amp;</span>str&gt; = TaggedCaptures {
+<a href=#573 id=573 data-nosnippet>573</a>        <span class="kw">let </span>caps: TaggedCaptures&lt;str&gt; = TaggedCaptures {
 <a href=#574 id=574 data-nosnippet>574</a>            captures: Captures::new(<span class="string">"foo bar"</span>, <span class="macro">vec!</span>[<span class="prelude-val">Some</span>((<span class="number">0</span>, <span class="number">7</span>))]),
 <a href=#575 id=575 data-nosnippet>575</a>            action: <span class="prelude-val">None</span>,
 <a href=#576 id=576 data-nosnippet>576</a>        };
@@ -590,7 +590,7 @@
 <a href=#590 id=590 data-nosnippet>590</a>    #[test_case(<span class="string">"{unknown}"</span>, <span class="string">"from context"</span>; <span class="string">"variable without context"</span>)]
 <a href=#591 id=591 data-nosnippet>591</a>    #[test]
 <a href=#592 id=592 data-nosnippet>592</a>    </span><span class="kw">fn </span>render_with_context_works(s: <span class="kw-2">&amp;</span>str, expected: <span class="kw-2">&amp;</span>str) {
-<a href=#593 id=593 data-nosnippet>593</a>        <span class="kw">let </span>caps: TaggedCaptures&lt;<span class="kw-2">&amp;</span>str&gt; = TaggedCaptures {
+<a href=#593 id=593 data-nosnippet>593</a>        <span class="kw">let </span>caps: TaggedCaptures&lt;str&gt; = TaggedCaptures {
 <a href=#594 id=594 data-nosnippet>594</a>            captures: Captures::new(<span class="string">"foo bar"</span>, <span class="macro">vec!</span>[<span class="prelude-val">Some</span>((<span class="number">0</span>, <span class="number">7</span>)), <span class="prelude-val">Some</span>((<span class="number">0</span>, <span class="number">3</span>)), <span class="prelude-val">Some</span>((<span class="number">4</span>, <span class="number">7</span>))]),
 <a href=#595 id=595 data-nosnippet>595</a>            action: <span class="prelude-val">None</span>,
 <a href=#596 id=596 data-nosnippet>596</a>        };
@@ -613,7 +613,7 @@
 <a href=#613 id=613 data-nosnippet>613</a>
 <a href=#614 id=614 data-nosnippet>614</a>    <span class="attr">#[test]
 <a href=#615 id=615 data-nosnippet>615</a>    </span><span class="kw">fn </span>render_with_context_returns_error_for_unknown_variables() {
-<a href=#616 id=616 data-nosnippet>616</a>        <span class="kw">let </span>caps: TaggedCaptures&lt;<span class="kw-2">&amp;</span>str&gt; = TaggedCaptures {
+<a href=#616 id=616 data-nosnippet>616</a>        <span class="kw">let </span>caps: TaggedCaptures&lt;str&gt; = TaggedCaptures {
 <a href=#617 id=617 data-nosnippet>617</a>            captures: Captures::new(<span class="string">"foo bar"</span>, <span class="macro">vec!</span>[<span class="prelude-val">Some</span>((<span class="number">0</span>, <span class="number">7</span>))]),
 <a href=#618 id=618 data-nosnippet>618</a>            action: <span class="prelude-val">None</span>,
 <a href=#619 id=619 data-nosnippet>619</a>        };
