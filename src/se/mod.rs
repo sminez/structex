@@ -205,7 +205,72 @@ where
     where
         H: Haystack<R>,
     {
-        TaggedCapturesIter::new(&self.inner.inst, self.inner.clone(), haystack)
+        TaggedCapturesIter::new(
+            &self.inner.inst,
+            self.inner.clone(),
+            haystack,
+            Dot::Range {
+                from: 0,
+                to: haystack.max_len(),
+            },
+        )
+    }
+
+    /// Iterate over all [TaggedCaptures] within the given haystack between the given byte offsets in order.
+    ///
+    /// See [iter_tagged_captures][Structex::iter_tagged_captures] for details of semantics.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// type Structex = structex::Structex<regex::Regex>;
+    ///
+    /// let se = Structex::new(r#"
+    ///   x/(.|\n)*?\./   # split into sentences
+    ///   g/Alice/        # if the sentence contains "Alice"
+    ///   n/(\w+)\./      # extract the last word of the sentence
+    /// "#).unwrap();
+    ///
+    /// let haystack = r#"This is a multi-line
+    /// string that mentions peoples names.
+    /// People like Alice and Bob. People
+    /// like Claire and David, but really
+    /// we're here to talk about Alice.
+    /// Alice is everyone's friend."#;
+    ///
+    /// // The byte range 57..156 removes the first an last sentences from the initial haystack.
+    /// assert_eq!(
+    ///     &haystack[57..156],
+    ///     r"People like Alice and Bob. People
+    /// like Claire and David, but really
+    /// we're here to talk about Alice."
+    /// );
+    ///
+    /// let last_words: Vec<String> = se
+    ///     .iter_tagged_captures_between(57, 156, haystack)
+    ///     .map(|m| m.submatch_text(1).unwrap().to_string())
+    ///     .collect();
+    ///
+    /// assert_eq!(&last_words, &["Bob", "Alice"]);
+    /// ```
+    pub fn iter_tagged_captures_between<'s, H>(
+        &'s self,
+        byte_from: usize,
+        byte_to: usize,
+        haystack: H,
+    ) -> TaggedCapturesIter<'s, R, H>
+    where
+        H: Haystack<R>,
+    {
+        TaggedCapturesIter::new(
+            &self.inner.inst,
+            self.inner.clone(),
+            haystack,
+            Dot::Range {
+                from: byte_from,
+                to: byte_to,
+            },
+        )
     }
 }
 
@@ -601,17 +666,9 @@ where
     R: RegexEngine,
     H: Haystack<R>,
 {
-    fn new(inst: &'s Inst, inner: Arc<Inner<R>>, haystack: H) -> Self {
+    fn new(inst: &'s Inst, inner: Arc<Inner<R>>, haystack: H, dot: Dot) -> Self {
         Self {
-            inner: MatchesInner::new(
-                inst,
-                inner,
-                haystack,
-                Dot::Range {
-                    from: 0,
-                    to: haystack.max_len(),
-                },
-            ),
+            inner: MatchesInner::new(inst, inner, haystack, dot),
         }
     }
 }
