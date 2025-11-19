@@ -55,7 +55,7 @@ where
 }
 
 /// Something that supports extracting a contiguous sub-section between two bytes offsets.
-pub trait Sliceable: Writable + Copy {
+pub trait Sliceable: Writable {
     /// The output of the [slice][Sliceable::slice] method.
     type Slice<'h>: Writable
     where
@@ -75,6 +75,32 @@ pub trait Sliceable: Writable + Copy {
     fn max_len(&self) -> usize;
 }
 
+impl<T> Sliceable for T
+where
+    T: AsRef<str> + ?Sized,
+{
+    type Slice<'h>
+        = &'h str
+    where
+        Self: 'h;
+
+    fn char_at(&self, byte_offset: usize) -> Option<char> {
+        if byte_offset >= self.as_ref().len() {
+            return None;
+        }
+
+        self.as_ref()[byte_offset..].chars().next()
+    }
+
+    fn slice(&self, range: Range<usize>) -> &str {
+        &self.as_ref()[range]
+    }
+
+    fn max_len(&self) -> usize {
+        self.as_ref().len()
+    }
+}
+
 /// Something that can be written to to a given [io::Write].
 pub trait Writable {
     /// Writes `self` to the given [io::Write], returning the number of bytes written.
@@ -83,35 +109,16 @@ pub trait Writable {
         W: io::Write;
 }
 
-impl Sliceable for &str {
-    type Slice<'h>
-        = &'h str
-    where
-        Self: 'h;
-
-    fn char_at(&self, byte_offset: usize) -> Option<char> {
-        if byte_offset >= self.len() {
-            return None;
-        }
-
-        self[byte_offset..].chars().next()
-    }
-
-    fn slice(&self, range: Range<usize>) -> &str {
-        &self[range]
-    }
-
-    fn max_len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl Writable for &str {
+impl<T> Writable for T
+where
+    T: AsRef<str> + ?Sized,
+{
     fn write_to<W>(&self, w: &mut W) -> io::Result<usize>
     where
         W: io::Write,
     {
-        w.write_all(self.as_bytes()).map(|_| self.len())
+        w.write_all(self.as_ref().as_bytes())
+            .map(|_| self.as_ref().len())
     }
 }
 
@@ -154,19 +161,19 @@ impl RawCaptures {
 /// Represents the capture group positions for a single [RegexEngine] match in terms of byte
 /// offsets into the original haystack that the match was run against.
 #[derive(Debug, PartialEq, Eq)]
-pub struct Captures<H>
+pub struct Captures<'h, H>
 where
-    H: Sliceable,
+    H: Sliceable + ?Sized,
 {
-    haystack: H,
+    haystack: &'h H,
     caps: Vec<Option<(usize, usize)>>,
 }
 
-impl<H> Captures<H>
+impl<'h, H> Captures<'h, H>
 where
-    H: Sliceable,
+    H: Sliceable + ?Sized,
 {
-    pub(crate) fn new(haystack: H, caps: Vec<Option<(usize, usize)>>) -> Self {
+    pub(crate) fn new(haystack: &'h H, caps: Vec<Option<(usize, usize)>>) -> Self {
         Self { haystack, caps }
     }
 
@@ -241,7 +248,7 @@ mod impl_for_regex {
         }
     }
 
-    impl Haystack<Regex> for &str {
+    impl Haystack<Regex> for str {
         fn is_match_between(&self, re: &Regex, from: usize, to: usize) -> bool {
             re.is_match(&self[from..to])
         }

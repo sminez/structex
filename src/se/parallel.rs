@@ -5,20 +5,20 @@ use crate::{
 };
 use std::sync::Arc;
 
-pub(super) struct Iter<'s, R, H>
+pub(super) struct Iter<'s, 'h, R, H>
 where
     R: RegexEngine,
-    H: Haystack<R>,
+    H: Haystack<R> + ?Sized,
 {
-    branches: Vec<Branch<'s, R, H>>,
+    branches: Vec<Branch<'s, 'h, R, H>>,
 }
 
-impl<'s, R, H> Iter<'s, R, H>
+impl<'s, 'h, R, H> Iter<'s, 'h, R, H>
 where
     R: RegexEngine,
-    H: Haystack<R>,
+    H: Haystack<R> + ?Sized,
 {
-    pub fn new(haystack: H, dot: Dot, branches: &'s [Inst], inner: Arc<Inner<R>>) -> Self {
+    pub fn new(haystack: &'h H, dot: Dot, branches: &'s [Inst], inner: Arc<Inner<R>>) -> Self {
         let branches = branches
             .iter()
             .flat_map(|inst| {
@@ -31,12 +31,12 @@ where
     }
 }
 
-impl<'s, R, H> Iterator for Iter<'s, R, H>
+impl<'s, 'h, R, H> Iterator for Iter<'s, 'h, R, H>
 where
     R: RegexEngine,
-    H: Haystack<R>,
+    H: Haystack<R> + ?Sized,
 {
-    type Item = TaggedCaptures<H>;
+    type Item = TaggedCaptures<'h, H>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.branches.retain_mut(|b| b.update());
@@ -65,19 +65,19 @@ where
     }
 }
 
-struct Branch<'s, R, H>
+struct Branch<'s, 'h, R, H>
 where
     R: RegexEngine,
-    H: Haystack<R>,
+    H: Haystack<R> + ?Sized,
 {
-    held: Option<TaggedCaptures<H>>,
-    it: MatchesInner<'s, R, H>,
+    held: Option<TaggedCaptures<'h, H>>,
+    it: MatchesInner<'s, 'h, R, H>,
 }
 
-impl<'s, R, H> Branch<'s, R, H>
+impl<'s, 'h, R, H> Branch<'s, 'h, R, H>
 where
     R: RegexEngine,
-    H: Haystack<R>,
+    H: Haystack<R> + ?Sized,
 {
     fn get_match(&self) -> Option<(usize, usize)> {
         self.held.as_ref().map(|m| m.get_match())

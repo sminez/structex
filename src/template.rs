@@ -364,7 +364,7 @@ impl Template {
     /// [render_to][Template::render_to] method.
     pub fn render<H>(&self, caps: &TaggedCaptures<H>) -> Result<String, RenderError>
     where
-        H: Sliceable,
+        H: Sliceable + ?Sized,
     {
         let mut buf = Vec::with_capacity(self.raw.len() * 2);
         self.render_to(&mut buf, caps)?;
@@ -380,7 +380,7 @@ impl Template {
     /// To render directly to a [String], see the [render][Template::render] method.
     pub fn render_to<H, W>(&self, w: &mut W, caps: &TaggedCaptures<H>) -> Result<usize, RenderError>
     where
-        H: Sliceable,
+        H: Sliceable + ?Sized,
         W: Write,
     {
         let mut n = 0;
@@ -425,7 +425,7 @@ impl Template {
         ctx: &C,
     ) -> Result<String, RenderError>
     where
-        H: Sliceable,
+        H: Sliceable + ?Sized,
         C: Context,
     {
         let mut buf = Vec::with_capacity(self.raw.len() * 2);
@@ -446,7 +446,7 @@ impl Template {
         ctx: &C,
     ) -> Result<usize, RenderError>
     where
-        H: Sliceable,
+        H: Sliceable + ?Sized,
         W: Write,
         C: Context,
     {
@@ -557,7 +557,7 @@ mod tests {
     #[test_case("{3}", ""; "unknown capture")]
     #[test]
     fn render_works(s: &str, expected: &str) {
-        let caps: TaggedCaptures<&str> = TaggedCaptures {
+        let caps: TaggedCaptures<str> = TaggedCaptures {
             captures: Captures::new("foo bar", vec![Some((0, 7)), Some((0, 3)), Some((4, 7))]),
             action: None,
         };
@@ -570,7 +570,7 @@ mod tests {
 
     #[test]
     fn render_returns_error_for_variables() {
-        let caps: TaggedCaptures<&str> = TaggedCaptures {
+        let caps: TaggedCaptures<str> = TaggedCaptures {
             captures: Captures::new("foo bar", vec![Some((0, 7))]),
             action: None,
         };
@@ -590,7 +590,7 @@ mod tests {
     #[test_case("{unknown}", "from context"; "variable without context")]
     #[test]
     fn render_with_context_works(s: &str, expected: &str) {
-        let caps: TaggedCaptures<&str> = TaggedCaptures {
+        let caps: TaggedCaptures<str> = TaggedCaptures {
             captures: Captures::new("foo bar", vec![Some((0, 7)), Some((0, 3)), Some((4, 7))]),
             action: None,
         };
@@ -613,7 +613,7 @@ mod tests {
 
     #[test]
     fn render_with_context_returns_error_for_unknown_variables() {
-        let caps: TaggedCaptures<&str> = TaggedCaptures {
+        let caps: TaggedCaptures<str> = TaggedCaptures {
             captures: Captures::new("foo bar", vec![Some((0, 7))]),
             action: None,
         };

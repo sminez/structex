@@ -58,14 +58,14 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn run_for<H>(
+fn run_for<'h, H>(
     se: &Structex<Regex>,
-    h: H,
+    h: &'h H,
     templates: &HashMap<usize, Template>,
-    after_match: impl Fn(H, &TaggedCaptures<H>),
+    after_match: impl Fn(&'h H, &TaggedCaptures<'h, H>),
 ) -> Result<()>
 where
-    H: Haystack<Regex>,
+    H: Haystack<Regex> + ?Sized,
 {
     for caps in se.iter_tagged_captures(h) {
         let id = caps.id().unwrap();

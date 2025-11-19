@@ -181,7 +181,19 @@ mod impl_structex {
         }
     }
 
-    impl Haystack<Regex> for &str {
+    impl Haystack<Regex> for str {
+        fn is_match_between(&self, re: &Regex, from: usize, to: usize) -> bool {
+            re.matches_between(&self, from, to)
+        }
+
+        fn captures_between(&self, re: &Regex, from: usize, to: usize) -> Option<RawCaptures> {
+            let m = re.find_between(&self, from, to)?;
+
+            Some(RawCaptures::new(m.iter_locs()))
+        }
+    }
+
+    impl Haystack<Regex> for GapBuffer {
         fn is_match_between(&self, re: &Regex, from: usize, to: usize) -> bool {
             re.matches_between(self, from, to)
         }
@@ -193,19 +205,7 @@ mod impl_structex {
         }
     }
 
-    impl Haystack<Regex> for &GapBuffer {
-        fn is_match_between(&self, re: &Regex, from: usize, to: usize) -> bool {
-            re.matches_between(*self, from, to)
-        }
-
-        fn captures_between(&self, re: &Regex, from: usize, to: usize) -> Option<RawCaptures> {
-            let m = re.find_between(*self, from, to)?;
-
-            Some(RawCaptures::new(m.iter_locs()))
-        }
-    }
-
-    impl Sliceable for &GapBuffer {
+    impl Sliceable for GapBuffer {
         type Slice<'h>
             = gap_buffer::Slice<'h>
         where
@@ -224,7 +224,7 @@ mod impl_structex {
         }
     }
 
-    impl Writable for &GapBuffer {
+    impl Writable for GapBuffer {
         fn write_to<W>(&self, w: &mut W) -> std::io::Result<usize>
         where
             W: std::io::Write,

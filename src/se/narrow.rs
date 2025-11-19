@@ -12,15 +12,15 @@ pub(crate) struct Narrow {
 }
 
 impl Narrow {
-    pub(super) fn apply<'s, R, H>(
+    pub(super) fn apply<'s, 'h, R, H>(
         &'s self,
-        haystack: H,
+        haystack: &'h H,
         dot: Dot,
         inner: Arc<Inner<R>>,
-    ) -> Option<MatchesInner<'s, R, H>>
+    ) -> Option<MatchesInner<'s, 'h, R, H>>
     where
         R: RegexEngine,
-        H: Haystack<R>,
+        H: Haystack<R> + ?Sized,
     {
         let (from, to) = dot.loc();
         let cap = haystack.captures_between(&inner.re[self.re], from, to)?;

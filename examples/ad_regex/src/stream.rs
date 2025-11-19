@@ -226,22 +226,22 @@ mod impl_structex {
     use std::{io::Read, ops::Range};
     use structex::re::{Haystack, RawCaptures, Sliceable, Writable};
 
-    impl<R> Haystack<Regex> for &CachingStream<R>
+    impl<R> Haystack<Regex> for CachingStream<R>
     where
         R: Read,
     {
         fn is_match_between(&self, re: &Regex, from: usize, to: usize) -> bool {
-            re.matches_between(*self, from, to)
+            re.matches_between(self, from, to)
         }
 
         fn captures_between(&self, re: &Regex, from: usize, to: usize) -> Option<RawCaptures> {
-            let m = re.find_between(*self, from, to)?;
+            let m = re.find_between(self, from, to)?;
 
             Some(RawCaptures::new(m.iter_locs()))
         }
     }
 
-    impl<R> Sliceable for &CachingStream<R>
+    impl<R> Sliceable for CachingStream<R>
     where
         R: Read,
     {
@@ -272,7 +272,7 @@ mod impl_structex {
         }
     }
 
-    impl<R> Writable for &CachingStream<R>
+    impl<R> Writable for CachingStream<R>
     where
         R: Read,
     {
