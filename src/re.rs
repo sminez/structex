@@ -238,27 +238,37 @@ where
 #[cfg(feature = "regex")]
 mod impl_for_regex {
     use super::*;
-    use regex::{Error, Regex, RegexBuilder};
+    use regex_automata::{
+        Input,
+        meta::{BuildError, Regex},
+        util::syntax,
+    };
 
     impl RegexEngine for Regex {
-        type CompileError = Error;
+        type CompileError = BuildError;
 
         fn compile(re: &str) -> Result<Self, Self::CompileError> {
-            RegexBuilder::new(re).multi_line(true).build()
+            Regex::builder()
+                .syntax(syntax::Config::new().multi_line(true))
+                .build(re)
         }
     }
 
     impl Haystack<Regex> for str {
         fn is_match_between(&self, re: &Regex, from: usize, to: usize) -> bool {
-            re.is_match(&self[from..to])
+            re.is_match(Input::new(self).span(from..to))
         }
 
         fn captures_between(&self, re: &Regex, from: usize, to: usize) -> Option<RawCaptures> {
-            let caps = re.captures(&self[from..to])?;
+            let mut caps = re.create_captures();
+            re.captures(Input::new(self).span(from..to), &mut caps);
+            if !caps.is_match() {
+                return None;
+            }
 
-            Some(RawCaptures::new(caps.iter().map(|cap| {
-                cap.map(|cap| (cap.start() + from, cap.end() + from))
-            })))
+            Some(RawCaptures::new(
+                caps.iter().map(|span| span.map(|s| (s.start, s.end))),
+            ))
         }
     }
 }

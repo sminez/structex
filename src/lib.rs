@@ -12,6 +12,14 @@ pub use ast::{ErrorKind, ParseError};
 pub use re::Captures;
 pub use se::{Action, Structex, StructexBuilder, TaggedCaptures, TaggedCapturesIter};
 
+#[cfg(feature = "regex")]
+pub mod regex_automata {
+    pub use regex_automata::meta::Regex;
+
+    /// A [Structex][crate::Structex] powered by an underlying [regex_automata::meta::Regex] engine.
+    pub type Structex = crate::Structex<Regex>;
+}
+
 /// An error that occurred during parsing or compiling a strutural regular expression.
 #[derive(Debug)]
 pub enum Error {

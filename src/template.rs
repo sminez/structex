@@ -65,8 +65,7 @@
 //! [Structex::iter_tagged_captures][crate::Structex::iter_tagged_captures].
 //!
 //! ```
-//! use structex::{Structex, template::Template};
-//! use regex::Regex;
+//! use structex::{regex_automata::Structex, template::Template};
 //!
 //! let haystack = r#"This is a multi-line
 //! string that mentions peoples names.
@@ -75,7 +74,7 @@
 //! we're here to talk about Alice.
 //! Alice is everyone's friend."#;
 //!
-//! let se: Structex<Regex> = Structex::new(r#"
+//! let se: Structex = Structex::new(r#"
 //!   x/(.|\n)*?\./ {
 //!     g/Alice/ n/(\w+)\./ p/The last word is '{1}'/;
 //!     v/Alice/ n/(\w+)/   p/The first word is '{1}'/;
@@ -110,8 +109,7 @@
 //!
 //! To render values other than captures from a Structex, implement the [Context] trait:
 //! ```
-//! use structex::{Structex, template::{Context, RenderError, Template}};
-//! use regex::Regex;
+//! use structex::{regex_automata::Structex, template::{Context, RenderError, Template}};
 //! use std::io::{self, Write};
 //!
 //! struct Ctx;
@@ -136,7 +134,7 @@
 //! we're here to talk about Alice.
 //! Alice is everyone's friend."#;
 //!
-//! let se: Structex<Regex> = Structex::new(r#"
+//! let se = Structex::new(r#"
 //!   x/(.|\n)*?\./ {
 //!     g/Alice/ n/(\w+)\./ p/The {foo} is '{1}'/;
 //!     v/Alice/ n/(\w+)/   p/The {bar} is '{1}'/;

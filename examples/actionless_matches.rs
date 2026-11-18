@@ -1,7 +1,6 @@
 //! A simple example of how to use Structex to print out filtered matches without an explicit
 //! action.
-use regex::Regex;
-use structex::Structex;
+use structex::regex_automata::Structex;
 
 const SE: &str = r#"
 x/fn(?:.|\n)*?\{/                   # select all Rust function signatures up to the opening brace
@@ -10,8 +9,8 @@ n/fn (\w+)(?:.|\n)*?-> (.*?) \{/    # extract the function name and return type 
 "#;
 
 fn main() {
-    // Compile the structex using the regex crate as the underlying engine.
-    let se: Structex<Regex> = Structex::new(SE).unwrap();
+    // Compile the structex using the regex-automata crate as the underlying engine.
+    let se = Structex::new(SE).unwrap();
 
     // Match against the ast.rs rust file from this crate
     let haystack = include_str!("../src/ast.rs");

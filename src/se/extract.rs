@@ -3,7 +3,7 @@ use crate::{
     re::{Haystack, RawCaptures, RegexEngine},
     se::{Dot, Inner, MatchesInner, TaggedCaptures},
 };
-use std::sync::Arc;
+use std::{mem, sync::Arc};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Extract {
@@ -51,14 +51,12 @@ where
     haystack: &'h H,
     ext: &'s Extract,
     inner: Arc<Inner<R>>,
+    /// State-machine for driving behaviour between child branches
+    state: State,
     /// The original parent dot we are extracting from
     parent: Dot,
     /// The child branch we are currently iterating over
     child: Option<Box<MatchesInner<'s, 'h, R, H>>>,
-    /// The current match
-    held: Option<RawCaptures>,
-    /// The current byte offset we are up to
-    pos: usize,
 }
 
 impl<'s, 'h, R, H> Iter<'s, 'h, R, H>
@@ -67,22 +65,35 @@ where
     H: Haystack<R> + ?Sized,
 {
     pub fn new(haystack: &'h H, parent: Dot, ext: &'s Extract, inner: Arc<Inner<R>>) -> Self {
-        let pos = parent.from();
-
         Self {
             haystack,
             ext,
             inner,
+            state: State::Search { prev_end: None },
             parent,
             child: None,
-            held: None,
-            pos,
         }
     }
 
-    fn next_captures(&self) -> Option<RawCaptures> {
-        self.haystack
-            .captures_between(&self.inner.re[self.ext.re], self.pos, self.parent.to())
+    /// locate the next match at or after `prev_end`, skipping an empty match at `prev_end` (same
+    /// semantics as the regex crate).
+    fn next_captures(&self, prev_end: Option<usize>) -> Option<RawCaptures> {
+        let re = &self.inner.re[self.ext.re];
+        let to = self.parent.to();
+        let mut pos = prev_end.unwrap_or(self.parent.from());
+
+        loop {
+            let caps = self.haystack.captures_between(re, pos, to)?;
+            if caps.from() == caps.to() && Some(caps.to()) == prev_end {
+                if pos >= to {
+                    return None;
+                }
+                pos += self.haystack.char_at(pos)?.len_utf8();
+                continue;
+            }
+
+            return Some(caps);
+        }
     }
 
     fn set_extract(&mut self, dot: Dot) {
@@ -108,50 +119,97 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             // If our current child iterator has something to yield then return that
-            let next = self.child.as_mut().and_then(|child| child.next());
-            if next.is_some() {
-                return next;
+            if let Some(m) = self.child.as_mut().and_then(|child| child.next()) {
+                return Some(m);
             }
 
-            // If we've reached the end of the input we were given to search then we're done
-            if self.pos == self.parent.to() {
-                return None;
-            }
+            // Otherwise we switch behaviour based on our current state
+            self.state = match mem::replace(&mut self.state, State::Done) {
+                // We have finished processing the previous match from self.ext (or we're at the
+                // start of the haystack) so locate the next match and set self.child.
+                State::Search { prev_end } => {
+                    let from = prev_end.unwrap_or(self.parent.from());
 
-            // If we have a held match then update child
-            if let Some(caps) = self.held.take() {
-                self.pos = caps.to();
-                self.set_extract(Dot::Captures(caps));
-            } else {
-                // Otherwise find the next match
-                match self.next_captures() {
-                    Some(caps) => {
-                        if self.ext.on_filter.is_some() && caps.from() > self.pos {
-                            self.set_filter(Dot::Range {
-                                from: self.pos,
-                                to: caps.from(),
-                            });
-                            self.pos = caps.from();
-                            self.held = Some(caps);
-                        } else {
-                            if self.pos == caps.to() {
-                                self.pos += self.haystack.char_at(self.pos)?.len_utf8();
-                            } else {
-                                self.pos = caps.to();
-                            }
+                    match self.next_captures(prev_end) {
+                        // If we have a filter branch and the match is beyond our current "from"
+                        // position, set self.child to run the filter for that interval and store
+                        // the match for when that new child iterator completes.
+                        Some(caps) if self.ext.on_filter.is_some() && caps.from() > from => {
+                            self.set_filter(Dot::range(from, caps.from()));
+
+                            State::Held(caps)
+                        }
+
+                        // If we don't have a filter branch or the match is not beyond our current
+                        // "from" position, set self.child to run extraction for the match interval.
+                        Some(caps) => {
+                            let prev_end = Some(caps.to());
                             self.set_extract(Dot::Captures(caps));
+
+                            State::Search { prev_end }
+                        }
+
+                        // If we failed to find a match but we have remaining input, attempt to set
+                        // self.child to run a filter for what's left
+                        None => {
+                            if from < self.parent.to() {
+                                self.set_filter(Dot::range(from, self.parent.to()));
+                            }
+
+                            State::Done
                         }
                     }
-
-                    None => {
-                        self.set_filter(Dot::Range {
-                            from: self.pos,
-                            to: self.parent.to(),
-                        });
-                        self.pos = self.parent.to();
-                    }
                 }
-            }
+
+                // We have a held match from self.ext to process following a possible filter
+                // branch, so set self.child to run extraction for that interval
+                State::Held(caps) => {
+                    let prev_end = Some(caps.to());
+                    self.set_extract(Dot::Captures(caps));
+
+                    State::Search { prev_end }
+                }
+
+                // All matches exhaused so we're done
+                State::Done => return None,
+            };
         }
+    }
+}
+
+enum State {
+    Search { prev_end: Option<usize> },
+    Held(RawCaptures),
+    Done,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Structex;
+    use regex_automata::meta::Regex;
+    use simple_test_case::test_case;
+
+    // Expected positions follow the semantics of the regex crate's find_iter / split: an empty
+    // match is never yielded at the end position of the previous match.
+    #[test_case("x/$/ A", "a\nb\nc", &[('A', 1, 1), ('A', 3, 3), ('A', 5, 5)]; "end of line")]
+    #[test_case("x/^/ A", "a\nb\nc\n", &[('A', 0, 0), ('A', 2, 2), ('A', 4, 4), ('A', 6, 6)]; "start of line")]
+    #[test_case("x/a*/ A", "baab", &[('A', 0, 0), ('A', 1, 3), ('A', 4, 4)]; "empty after non-empty")]
+    #[test_case("x/^/ A", "", &[('A', 0, 0)]; "empty haystack")]
+    #[test_case(
+        "{ x/$/ A; y/$/ B; }",
+        "a\nb\nc",
+        &[('B', 0, 1), ('A', 1, 1), ('B', 1, 3), ('A', 3, 3), ('B', 3, 5), ('A', 5, 5)];
+        "extract and between"
+    )]
+    #[test_case("y/a*/ B", "baab", &[('B', 0, 1), ('B', 3, 4)]; "between with empty matches")]
+    #[test]
+    fn empty_match_edge_cases(se: &str, haystack: &str, expected: &[(char, usize, usize)]) {
+        let se: Structex<Regex> = Structex::new(se).unwrap();
+        let matches: Vec<(char, usize, usize)> = se
+            .iter_tagged_captures(haystack)
+            .map(|m| (m.tag().unwrap(), m.from(), m.to()))
+            .collect();
+
+        assert_eq!(matches, expected);
     }
 }

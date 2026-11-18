@@ -6,7 +6,8 @@
 
 This crate provides a generic structural regular expression engine that can be
 backed by a user provided regular expression engine. Support for using the
-[regex][0] crate is provided from this crate under the `regex` feature.
+[regex-automata][0] crate (`meta::Regex`) is provided from this crate under the
+`regex` feature.
 
 ## Documentation
 
@@ -22,18 +23,17 @@ make use of this crate.
 
 To add this crate to an existing Rust project, either add `structex` to your
 `Cargo.toml` or run `cargo add structex`. By default, support for using the
-[regex][0] crate as a back end is enabled via the `regex` feature. You can
-opt out of this by disabling default features.
+[regex-automata][0] crate as a back-end is enabled via the `regex` feature.
+You can opt out of this by disabling default features.
 
 The following is an example of how to find Rust functions that return Result
 types from a given source file:
 
 ```rust
-use regex::Regex;
-use structex::Structex;
+use structex::regex_automata::{Regex, Structex};
 
-// Compile the structex using the regex crate as the underlying engine.
-let se: Structex<Regex> = Structex::new(r#"
+// Compile the structex using regex-automata as the underlying engine.
+let se: Structex = Structex::new(r#"
   x/fn(?:.|\n)*?\{/                   # select all Rust function signatures up to the opening brace
   g/->.*Result.*\{/                   # keep those that return some form of Result
   n/fn (\w+)(?:.|\n)*?-> (.*?) \{/    # extract the function name and return type from the signature
@@ -97,7 +97,7 @@ full input and then accept a chain of one or more of the following operators:
 
 > Note that the use of '/' as the delimiter here is by convention: any character
 > other than ';' may be used. To insert your chosen delimiter inside of the
-argument of an operator or action, escape it with a backslash.
+> argument of an operator or action, escape it with a backslash.
 
 [^narrow]: The `n` narrowing operator is a new edition to the syntax added by
 this crate. In Pike's original system this narrowing was possible via "address"
@@ -203,7 +203,7 @@ for a more complicated expression that uses multiple different template
 strings.
 
 
-[0]: https://docs.rs/regex/latest/regex/index.html
+[0]: https://docs.rs/regex-automata/latest/regex_automata/meta/struct.Regex.html
 [1]: http://doc.cat-v.org/plan_9/4th_edition/papers/sam/
 [2]: http://doc.cat-v.org/bell_labs/structural_regexps/
 [3]: https://en.wikipedia.org/wiki/Regular_expression

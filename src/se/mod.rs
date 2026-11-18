@@ -65,8 +65,7 @@ where
     ///
     /// # Example
     /// ```
-    /// // A Structex backed by the regex crate
-    /// type Structex = structex::Structex<regex::Regex>;
+    /// use structex::regex_automata::Structex;
     ///
     /// // An empty expression is always invalid
     /// assert!(Structex::new("").is_err());
@@ -85,7 +84,7 @@ where
     ///
     /// # Example
     /// ```
-    /// type Structex = structex::Structex<regex::Regex>;
+    /// use structex::regex_automata::Structex;
     ///
     /// let se = Structex::new("x/foo.*bar/ p").unwrap();
     /// assert_eq!(se.as_str(), "x/foo.*bar/ p");
@@ -98,9 +97,7 @@ where
     ///
     /// # Example
     /// ```
-    /// use structex::Action;
-    ///
-    /// type Structex = structex::Structex<regex::Regex>;
+    /// use structex::{regex_automata::Structex, Action};
     ///
     /// let se = Structex::new("x/foo.*bar/ { p; a/baz/; }").unwrap();
     /// let actions = se.actions();
@@ -123,7 +120,7 @@ where
     ///
     /// # Example
     /// ```
-    /// type Structex = structex::Structex<regex::Regex>;
+    /// use structex::regex_automata::Structex;
     ///
     /// let se = Structex::new("x/foo.*bar/ { p; a/baz/; }").unwrap();
     /// assert_eq!(se.tags(), &['a', 'p']);
@@ -140,7 +137,7 @@ where
     /// allowing you to write simple expressions that filter and refine regions of the haystack to
     /// locate the structure you are looking for.
     /// ```
-    /// type Structex = structex::Structex<regex::Regex>;
+    /// use structex::regex_automata::Structex;
     ///
     /// let se = Structex::new(r#"
     ///   x/(.|\n)*?\./   # split into sentences
@@ -166,9 +163,7 @@ where
     /// When writing more complex expressions you will want to assign tagged actions to each
     /// matching branch in order to distinguish them:
     /// ```
-    /// use structex::TaggedCaptures;
-    ///
-    /// type Structex = structex::Structex<regex::Regex>;
+    /// use structex::{regex_automata::Structex, TaggedCaptures};
     ///
     /// let se = Structex::new(r#"
     ///   ## split into sentences
@@ -226,7 +221,7 @@ where
     /// # Example
     ///
     /// ```
-    /// type Structex = structex::Structex<regex::Regex>;
+    /// use structex::regex_automata::Structex;
     ///
     /// let se = Structex::new(r#"
     ///   x/(.|\n)*?\./   # split into sentences
@@ -323,10 +318,10 @@ impl StructexBuilder {
     ///
     /// # Example
     /// ```
-    /// use structex::{Structex, StructexBuilder};
+    /// use structex::{regex_automata::Structex, StructexBuilder};
     ///
     /// let expr = "x/.*foo/ p/\nfound foo\t/";
-    /// let se: Structex<regex::Regex> = StructexBuilder::new(expr)
+    /// let se: Structex = StructexBuilder::new(expr)
     ///     .raw_arg_strings()
     ///     .build()
     ///     .unwrap();
@@ -343,10 +338,10 @@ impl StructexBuilder {
     ///
     /// # Example
     /// ```
-    /// use structex::{Structex, StructexBuilder};
+    /// use structex::{regex_automata::Structex, StructexBuilder};
     ///
     /// let expr = "x/.*foo/ p/found foo/";
-    /// let se: Structex<regex::Regex> = StructexBuilder::new(expr)
+    /// let se: Structex = StructexBuilder::new(expr)
     ///     .action_argument_fn(|s| s.to_ascii_uppercase())
     ///     .build()
     ///     .unwrap();
@@ -369,18 +364,18 @@ impl StructexBuilder {
     ///
     /// # Example
     /// ```
-    /// use structex::{Structex, StructexBuilder};
+    /// use structex::{regex_automata::{Regex, Structex}, StructexBuilder};
     ///
     /// let expr = "x/.*foo/";
     ///
     /// // By default, actions are not required.
-    /// assert!(Structex::<regex::Regex>::new(expr).is_ok());
+    /// assert!(Structex::new(expr).is_ok());
     ///
     /// // If actions are marked as required, the above expression will produce a compilation error.
     /// assert!(
     ///     StructexBuilder::new(expr)
     ///         .require_actions()
-    ///         .build::<regex::Regex>()
+    ///         .build::<Regex>()
     ///         .is_err()
     /// );
     /// ```
@@ -397,18 +392,18 @@ impl StructexBuilder {
     ///
     /// # Example
     /// ```
-    /// use structex::{Structex, StructexBuilder};
+    /// use structex::{regex_automata::{Regex, Structex}, StructexBuilder};
     ///
     /// let expr = "A";
     ///
     /// // By default, top level actions are not permitted.
-    /// assert!(Structex::<regex::Regex>::new(expr).is_err());
+    /// assert!(Structex::new(expr).is_err());
     ///
     /// // When opting into allowing top level actions, the above expression becomes valid.
     /// assert!(
     ///     StructexBuilder::new(expr)
     ///         .allow_top_level_actions()
-    ///         .build::<regex::Regex>()
+    ///         .build::<Regex>()
     ///         .is_ok()
     /// );
     /// ```
@@ -424,18 +419,18 @@ impl StructexBuilder {
     ///
     /// # Example
     /// ```
-    /// use structex::{Structex, StructexBuilder};
+    /// use structex::{regex_automata::{Regex, Structex}, StructexBuilder};
     ///
     /// let expr = "x/.*foo/ A";
     ///
     /// // By default all tags are allowed
-    /// assert!(Structex::<regex::Regex>::new(expr).is_ok());
+    /// assert!(Structex::new(expr).is_ok());
     ///
     /// // If only 'B' is allowed then the above expression is invalid
     /// assert!(
     ///     StructexBuilder::new(expr)
     ///         .with_allowed_argless_tags('B')
-    ///         .build::<regex::Regex>()
+    ///         .build::<Regex>()
     ///         .is_err()
     /// );
     /// ```
@@ -451,18 +446,18 @@ impl StructexBuilder {
     ///
     /// # Example
     /// ```
-    /// use structex::{Structex, StructexBuilder};
+    /// use structex::{regex_automata::{Regex, Structex}, StructexBuilder};
     ///
     /// let expr = "x/.*foo/ A/foo/";
     ///
     /// // By default all tags are allowed
-    /// assert!(Structex::<regex::Regex>::new(expr).is_ok());
+    /// assert!(Structex::new(expr).is_ok());
     ///
     /// // If only 'B' is allowed then the above expression is invalid
     /// assert!(
     ///     StructexBuilder::new(expr)
     ///         .with_allowed_single_arg_tags('B')
-    ///         .build::<regex::Regex>()
+    ///         .build::<Regex>()
     ///         .is_err()
     /// );
     /// ```
@@ -535,6 +530,10 @@ pub(super) enum Dot {
 }
 
 impl Dot {
+    pub(crate) const fn range(from: usize, to: usize) -> Self {
+        Self::Range { from, to }
+    }
+
     pub fn loc(&self) -> (usize, usize) {
         match self {
             Self::Range { from, to } => (*from, *to),

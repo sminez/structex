@@ -1,7 +1,6 @@
 //! An example of how to use a Structex with this crate's minimal templating support to create
 //! a simple 'p' print action.
-use regex::Regex;
-use structex::{Structex, StructexBuilder, template::Template};
+use structex::{StructexBuilder, regex_automata::Structex, template::Template};
 
 // This is a much more complicated, compound expression. It is searching for Rust "impl" blocks
 // within a file, filtering out those that look like a trait implementation ("impl X for Y") before
@@ -39,7 +38,7 @@ v/^impl(?:<.*?>)?.*? for/ {
 
 fn main() {
     // Compile the structex only allowing a 'p' tag that accepts a single argument
-    let se: Structex<Regex> = StructexBuilder::new(SE)
+    let se: Structex = StructexBuilder::new(SE)
         .with_allowed_argless_tags("")
         .with_allowed_single_arg_tags("p")
         .build()

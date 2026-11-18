@@ -36,18 +36,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "regex"
-version = "1.12.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "843bc0191f75f3e22651ae5f1e72939ab2f72a4bc30fa80a066bd66edefc24d4"
-dependencies = [
- "aho-corasick",
- "memchr",
- "regex-automata",
- "regex-syntax",
-]
-
-[[package]]
 name = "regex-automata"
 version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -83,9 +71,9 @@ checksum = "373fac8aec0b1d99f0915cb639ce66f615a8f4f67e237c39058bc38e1fa89a62"
 
 [[package]]
 name = "structex"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
- "regex",
+ "regex-automata",
  "simple_test_case",
  "simple_txtar",
  "structex",
