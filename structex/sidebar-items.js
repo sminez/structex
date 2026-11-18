@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Error","ErrorKind"],"mod":["re","template"],"struct":["Action","Structex","StructexBuilder","TaggedCaptures","TaggedCapturesIter"],"type":["ParseError"]};
+window.SIDEBAR_ITEMS = {"enum":["Error","ErrorKind"],"mod":["re","regex_automata","template"],"struct":["Action","Structex","StructexBuilder","TaggedCaptures","TaggedCapturesIter"],"type":["ParseError"]};
