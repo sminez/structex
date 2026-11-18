@@ -170,7 +170,7 @@ where
                     State::Search { prev_end }
                 }
 
-                // All matches exhaused so we're done
+                // All matches exhausted so we're done
                 State::Done => return None,
             };
         }

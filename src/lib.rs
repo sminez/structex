@@ -20,7 +20,7 @@ pub mod regex_automata {
     pub type Structex = crate::Structex<Regex>;
 }
 
-/// An error that occurred during parsing or compiling a strutural regular expression.
+/// An error that occurred during parsing or compiling a structural regular expression.
 #[derive(Debug)]
 pub enum Error {
     /// A syntax error in the provided structural regular expression.

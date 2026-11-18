@@ -21,7 +21,7 @@ pub enum ErrorKind {
     /// The provided top level expression was a single action.
     /// Such an expression would only ever run the action once for all inputs.
     TopLevelAction,
-    /// Comilation options require an action for all matches but none was specified.
+    /// Compilation options require an action for all matches but none was specified.
     MissingAction,
     /// An expected delimiter was not found.
     ///

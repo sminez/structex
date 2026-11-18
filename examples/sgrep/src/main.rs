@@ -18,7 +18,7 @@ use structex::{
 /// Matches are printed with optional templating if provided in the expression.
 #[derive(Parser)]
 struct Args {
-    /// The stuctural regular expression to run.
+    /// The structural regular expression to run.
     expression: String,
 
     /// Files to search.

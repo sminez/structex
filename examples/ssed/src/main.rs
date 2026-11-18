@@ -24,7 +24,7 @@ use structex::{
 ///   - a: insert the output of the given template after the match
 #[derive(Parser)]
 struct Args {
-    /// The stuctural regular expression to run.
+    /// The structural regular expression to run.
     expression: String,
 
     /// Files to run against.
