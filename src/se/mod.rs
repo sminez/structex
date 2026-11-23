@@ -209,7 +209,7 @@ where
             haystack,
             Dot::Range {
                 from: 0,
-                to: haystack.max_len(),
+                to: haystack.known_len().unwrap_or(usize::MAX),
             },
         )
     }
@@ -555,12 +555,24 @@ impl Dot {
         }
     }
 
+    pub fn resolved_to<H>(&self, haystack: &H) -> usize
+    where
+        H: Sliceable + ?Sized,
+    {
+        match self.to() {
+            usize::MAX => haystack.max_len(),
+            to => to,
+        }
+    }
+
     fn into_captures<'h, H>(self, haystack: &'h H) -> Captures<'h, H>
     where
         H: Sliceable + ?Sized,
     {
+        let to = self.resolved_to(haystack);
+
         match self {
-            Self::Range { from, to } => Captures::new(haystack, vec![Some((from, to))]),
+            Self::Range { from, .. } => Captures::new(haystack, vec![Some((from, to))]),
             Self::Captures(c) => Captures::new(haystack, c.caps),
         }
     }

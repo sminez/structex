@@ -35,6 +35,11 @@ pub trait RegexEngine: Sized {
 ///
 /// Typically this is a [&str] but some engines may support richer types in order to provide
 /// searching of streams or discontiguous inputs.
+///
+/// ### Unbounded haystacks
+///
+/// If [Sliceable::known_len] returns `None` then searches may be run with a `to` offset of
+/// `usize::MAX`. This denotes "up to the end of the input", reading further input as required.
 pub trait Haystack<R>: Sliceable
 where
     R: RegexEngine,
@@ -67,12 +72,21 @@ pub trait Sliceable: Writable {
     /// The contiguous sub-section of self that is denoted by the given byte [Range].
     fn slice<'h>(&'h self, range: Range<usize>) -> Self::Slice<'h>;
 
-    /// The maximum length in bytes.
+    /// The total length in bytes.
     ///
-    /// This value will be used as the upper bound to extract slices when searching for matches. As
+    /// For haystacks that are read lazily, this reads to the end of the input if required. As
     /// such, this value must be a valid end to the `range` argument to the
     /// [slice][Sliceable::slice] method.
     fn max_len(&self) -> usize;
+
+    /// The total length in bytes if it is known without reading further input.
+    ///
+    /// Haystacks that are read lazily should return `None` until the end of the input has been
+    /// reached, in which case searches will be run up to an end offset of `usize::MAX` (see
+    /// [Haystack]).
+    fn known_len(&self) -> Option<usize> {
+        Some(self.max_len())
+    }
 }
 
 impl<T> Sliceable for T

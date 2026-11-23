@@ -150,10 +150,12 @@ where
                         }
 
                         // If we failed to find a match but we have remaining input, attempt to set
-                        // self.child to run a filter for what's left
+                        // self.child to run a filter for what's left. For an unbounded parent the
+                        // failed search will have already read to the end of the input.
                         None => {
-                            if from < self.parent.to() {
-                                self.set_filter(Dot::range(from, self.parent.to()));
+                            let to = self.parent.resolved_to(self.haystack);
+                            if from < to {
+                                self.set_filter(Dot::range(from, to));
                             }
 
                             State::Done

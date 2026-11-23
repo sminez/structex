@@ -12,6 +12,9 @@ pub use ast::{ErrorKind, ParseError};
 pub use re::Captures;
 pub use se::{Action, Structex, StructexBuilder, TaggedCaptures, TaggedCapturesIter};
 
+#[cfg(feature = "regex_cursor")]
+pub mod regex_cursor;
+
 #[cfg(feature = "regex")]
 pub mod regex_automata {
     pub use regex_automata::meta::Regex;
