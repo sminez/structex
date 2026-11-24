@@ -89,7 +89,7 @@ checksum = "373fac8aec0b1d99f0915cb639ce66f615a8f4f67e237c39058bc38e1fa89a62"
 
 [[package]]
 name = "structex"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "regex-automata",
  "regex-cursor",
