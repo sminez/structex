@@ -3,7 +3,7 @@ use clap::Parser;
 use std::{
     collections::HashMap,
     fs,
-    io::{self, Write, stdin, stdout},
+    io::{self, Write, stdin},
 };
 use structex::{
     Structex, StructexBuilder, TaggedCaptures,
@@ -44,10 +44,22 @@ fn main() -> Result<()> {
         }
     }
 
+    match run(&se, &files, &templates) {
+        Err(e) if e.kind() == io::ErrorKind::BrokenPipe => Ok(()),
+        Err(e) => Err(e.into()),
+        Ok(()) => Ok(()),
+    }
+}
+
+fn run(
+    se: &Structex<Regex>,
+    files: &[String],
+    templates: &HashMap<usize, Template>,
+) -> io::Result<()> {
     if files.is_empty() {
         let h = CachingStream::new(stdin());
 
-        run_for(&se, &h, "STDIN", &templates, |h, caps| {
+        run_for(se, &h, "STDIN", templates, |h, caps| {
             h.drop_before(caps);
 
             if h.has_error() {
@@ -59,7 +71,7 @@ fn main() -> Result<()> {
     } else {
         for file in files.iter() {
             let s = fs::read_to_string(file)?;
-            run_for(&se, s.as_str(), file, &templates, |_, _| Ok(()))?;
+            run_for(se, s.as_str(), file, templates, |_, _| Ok(()))?;
         }
     }
 
@@ -90,19 +102,23 @@ fn run_for<'h, H>(
     fname: &str,
     templates: &HashMap<usize, Template>,
     after_match: impl Fn(&'h H, &TaggedCaptures<'h, H>) -> io::Result<()>,
-) -> Result<()>
+) -> io::Result<()>
 where
     H: Haystack<Regex> + ?Sized,
 {
     let ctx = Ctx { fname };
+    let mut stdout = io::stdout().lock();
 
     for caps in se.iter_tagged_captures(h) {
         let id = caps.id().unwrap();
 
         match templates.get(&id) {
-            Some(t) => println!("{}", t.render_with_context(&caps, &ctx)?),
+            Some(t) => {
+                t.render_with_context_to(&mut stdout, &caps, &ctx)?;
+                stdout.write_all(b"\n")?;
+            }
             None => {
-                caps.as_slice().write_to(&mut stdout())?;
+                caps.as_slice().write_to(&mut stdout)?;
             }
         }
 
