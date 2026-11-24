@@ -1,14 +1,14 @@
-use ad_regex::{CachingStream, Regex};
 use anyhow::Result;
 use clap::Parser;
 use std::{
     collections::HashMap,
     fs,
-    io::{stdin, stdout},
+    io::{self, stdin, stdout},
 };
 use structex::{
     Structex, StructexBuilder, TaggedCaptures,
     re::{Haystack, Writable},
+    regex_cursor::{CachingStream, Regex},
     template::Template,
 };
 
@@ -52,12 +52,18 @@ fn main() -> Result<()> {
 
     if files.is_empty() {
         run_for(&se, &CachingStream::new(stdin()), &templates, |h, caps| {
-            h.clear_until(caps.from())
+            h.drop_before(caps);
+
+            if h.has_error() {
+                Err(h.unwrap_error())
+            } else {
+                Ok(())
+            }
         })?;
     } else {
         for file in files {
             let s = fs::read_to_string(file)?;
-            run_for(&se, s.as_str(), &templates, |_, _| {})?;
+            run_for(&se, s.as_str(), &templates, |_, _| Ok(()))?;
         }
     }
 
@@ -68,7 +74,7 @@ fn run_for<'h, H>(
     se: &Structex<Regex>,
     h: &'h H,
     templates: &HashMap<usize, Template>,
-    after_match: impl Fn(&'h H, &TaggedCaptures<'h, H>),
+    after_match: impl Fn(&'h H, &TaggedCaptures<'h, H>) -> io::Result<()>,
 ) -> Result<()>
 where
     H: Haystack<Regex> + ?Sized,
@@ -99,7 +105,7 @@ where
         }
 
         pos = caps.to();
-        (after_match)(h, &caps);
+        (after_match)(h, &caps)?;
     }
 
     if pos < h.max_len() {
