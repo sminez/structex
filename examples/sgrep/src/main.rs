@@ -3,13 +3,13 @@ use clap::Parser;
 use std::{
     collections::HashMap,
     fs,
-    io::{self, stdin, stdout},
+    io::{self, Write, stdin, stdout},
 };
 use structex::{
     Structex, StructexBuilder, TaggedCaptures,
     re::{Haystack, Writable},
     regex_cursor::{CachingStream, Regex},
-    template::Template,
+    template::{Context, Template},
 };
 
 /// A simple structural expression powered grep.
@@ -46,7 +46,8 @@ fn main() -> Result<()> {
 
     if files.is_empty() {
         let h = CachingStream::new(stdin());
-        run_for(&se, &h, &templates, |h, caps| {
+
+        run_for(&se, &h, "STDIN", &templates, |h, caps| {
             h.drop_before(caps);
 
             if h.has_error() {
@@ -56,29 +57,50 @@ fn main() -> Result<()> {
             }
         })?;
     } else {
-        for file in files {
+        for file in files.iter() {
             let s = fs::read_to_string(file)?;
-            run_for(&se, s.as_str(), &templates, |_, _| Ok(()))?;
+            run_for(&se, s.as_str(), file, &templates, |_, _| Ok(()))?;
         }
     }
 
     Ok(())
 }
 
+#[derive(Debug, Clone, Copy)]
+struct Ctx<'a> {
+    fname: &'a str,
+}
+
+impl<'a> Context for Ctx<'a> {
+    fn render_var<W>(&self, var: &str, w: &mut W) -> Option<io::Result<usize>>
+    where
+        W: Write,
+    {
+        if var == "FILENAME" {
+            Some(w.write(self.fname.as_bytes()))
+        } else {
+            None
+        }
+    }
+}
+
 fn run_for<'h, H>(
     se: &Structex<Regex>,
     h: &'h H,
+    fname: &str,
     templates: &HashMap<usize, Template>,
     after_match: impl Fn(&'h H, &TaggedCaptures<'h, H>) -> io::Result<()>,
 ) -> Result<()>
 where
     H: Haystack<Regex> + ?Sized,
 {
+    let ctx = Ctx { fname };
+
     for caps in se.iter_tagged_captures(h) {
         let id = caps.id().unwrap();
 
         match templates.get(&id) {
-            Some(t) => println!("{}", t.render(&caps)?),
+            Some(t) => println!("{}", t.render_with_context(&caps, &ctx)?),
             None => {
                 caps.as_slice().write_to(&mut stdout())?;
             }
